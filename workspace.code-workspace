@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "..\\MurderUserDungeon-master"
+		},
+		{
+			"path": "..\\bevy_retrograde-master"
+		}
+	],
+	"settings": {}
+}
