@@ -62,46 +62,39 @@ impl TileSpriteParser {
         let mut lines = contents.lines();
         let mut line = lines
             .next()
-            .ok_or(format!(
-                "No metadata information found for TileSprite file `{}`",
-                filename
-            ))
-            .unwrap()
+            .unwrap_or_else(|| {
+                panic!(
+                    "No metadata information found for TileSprite file `{}`",
+                    filename
+                )
+            })
             .trim();
 
         while !line.starts_with('=') {
             line = lines
                 .next()
-                .ok_or(format!(
-                    "No metadata information found for TileSprite file `{}`",
-                    filename
-                ))
-                .unwrap()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "No metadata information found for TileSprite file `{}`",
+                        filename
+                    )
+                })
                 .trim();
         }
 
         let mut metadata = line[1..].split(',');
-        let title = metadata
-            .next()
-            .ok_or(format!(
-                "No metadata title found for TileSprite file `{}`",
-                filename
-            ))
-            .unwrap();
-        let width = metadata
-            .next()
-            .ok_or(format!(
-                "No metadata width found for TileSprite file `{}`",
-                filename
-            ))
-            .unwrap();
-        let height = metadata
-            .next()
-            .ok_or(format!(
+        let title = metadata.next().unwrap_or_else(|| {
+            panic!("No metadata title found for TileSprite file `{}`", filename)
+        });
+        let width = metadata.next().unwrap_or_else(|| {
+            panic!("No metadata width found for TileSprite file `{}`", filename)
+        });
+        let height = metadata.next().unwrap_or_else(|| {
+            panic!(
                 "No metadata height found for TileSprite file `{}`",
                 filename
-            ))
-            .unwrap();
+            )
+        });
         (
             title.to_string(),
             width.parse::<usize>().unwrap(),
@@ -141,8 +134,7 @@ impl TileSpriteParser {
             while data_lines < self.tile_height {
                 let spriteline = line_iter
                     .next()
-                    .ok_or("End of file when expecting more spritedata.")
-                    .unwrap();
+                    .expect("End of file when expecting more spritedata.");
                 let spriteline = spriteline.trim();
                 // If it starts with `_`, the user is missing lines
                 if spriteline.starts_with('_') {

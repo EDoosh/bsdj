@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_retrograde::prelude::*;
 
 mod game;
+mod main_menu;
 mod states;
 mod tilerender;
 
@@ -19,8 +20,12 @@ fn main() {
         title: "Topdown Project".to_string(),
         width: 160. * SCALE,
         height: 144. * SCALE,
+        vsync: true,
+        // resizable: false,
         ..Default::default()
     });
+
+    app.add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default());
 
     // region:      ADD THE PLUGINS
     app.add_plugins(RetroPlugins);
@@ -47,6 +52,7 @@ fn setup(mut commands: Commands) {
                 width: 160,
                 height: 144,
             },
+            centered: false,
             background_color: Color::new(0.2, 0.2, 0.2, 1.),
             letterbox_color: Color::new(0., 0., 0., 1.),
             ..Default::default()
