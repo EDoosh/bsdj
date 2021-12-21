@@ -1,16 +1,10 @@
 use bevy::prelude::*;
-use bevy::reflect;
 use bevy_retrograde::core::image::{GenericImage, Rgba, RgbaImage};
 use bevy_retrograde::prelude::*;
 use std::collections::HashMap;
-use std::time::Instant;
 
-pub mod map_renderer;
+pub mod init_renderer;
 pub mod parse_tilesprite;
-pub mod ui_renderer;
-
-pub use map_renderer::MapRenderer;
-pub use ui_renderer::UiRenderer;
 
 type TileId = String;
 type ColorId = String;
@@ -35,10 +29,7 @@ impl Plugin for TileRenderPlugin {
             SystemSet::new().with_system(load_map.system()),
         );
 
-        app.add_asset::<TileRenderer>();
-
-        app.add_plugin(map_renderer::MapRendererPlugin);
-        app.add_plugin(ui_renderer::UiRendererPlugin);
+        app.add_plugin(init_renderer::InitRendererPlugin);
     }
 }
 
@@ -49,18 +40,12 @@ impl Plugin for TileRenderPlugin {
 /// An error that occurs when using the TileRenderer type incorrectly.
 #[derive(thiserror::Error, Debug)]
 pub enum TileRendererError {
-    // #[error(
-    //     "Invalid color set color count from ColorID {color_id}: Expected {expected}, got {recieved}"
-    // )]
-    // InvalidColorSetColorCount {
-    //     color_id: ColorId,
-    //     expected: u32,
-    //     recieved: u32,
-    // },
     #[error("Invalid ColorID `{0}` while trying to retrieve ColorSet.")]
     InvalidColorId(ColorId),
     #[error("Invalid TileID `{0}` while trying to retrieve TileSprite.")]
     InvalidTileId(TileId),
+    #[error("Invalid Cluster `{0}` while trying to retrieve Cluster.")]
+    InvalidClusterId(ClusterId),
     #[error("Invalid PixelColorID `{0}` while trying to retrieve RGBA color from color palette.")]
     InvalidPixelColorId(PixelColorId),
     #[error(
@@ -171,12 +156,17 @@ impl TileSpriteHandler {
         }
     }
 
-    /// Add a new color to the TileSprite hashmap, with a provided TileId
+    /// Add a new color to the TileSprite hashmap, with a provided TileId.
+    /// Returns `true` if it overwrote an existing TileSprite.
+    ///
+    /// # ERRORS
+    ///
+    /// Errors if the tilesprite is not the expected size (tile_width * tile_height)
     pub fn add_tilesprite(
         &mut self,
         tileid: TileId,
         tilesprite: TileSprite,
-    ) -> Result<(), TileRendererError> {
+    ) -> Result<bool, TileRendererError> {
         if tilesprite.size() != self.width * self.height {
             return Err(TileRendererError::IncorrectTileSpriteSize {
                 recieved: tilesprite.size(),
@@ -187,9 +177,8 @@ impl TileSpriteHandler {
         if !self.tile_ids.contains(&tileid) {
             self.tile_ids.push(tileid.clone());
         }
-        self.tile_sprites.insert(tileid, tilesprite);
 
-        Ok(())
+        Ok(self.tile_sprites.insert(tileid, tilesprite).is_some())
     }
 
     pub fn get_tilesprite(&self, tileid: &TileIdRef) -> Option<&TileSprite> {
@@ -271,12 +260,13 @@ impl ColorHandler {
     }
 
     /// Insert a ColorSet into the handler with a designated Color ID.
+    /// Returns `true` if it overwrote an existing color.
     ///
     /// # NOTES
     ///
     /// Will replace any ColorSet with the same ColorId with the new one.
-    pub fn add_colorset(&mut self, color_id: ColorId, colorset: ColorSet) {
-        self.colors.insert(color_id, colorset);
+    pub fn add_colorset(&mut self, color_id: ColorId, colorset: ColorSet) -> bool {
+        self.colors.insert(color_id, colorset).is_some()
     }
 
     /// Returns a ColorSet from the handler with the given ID.
@@ -289,17 +279,62 @@ impl ColorHandler {
 
 // region:      Components
 
+// region:      LayerHandler
+
+pub struct LayerHandler {
+    renderer: TileRenderer,
+    layers: HashMap<String, TileLayer>,
+}
+
+impl LayerHandler {
+    pub fn new(renderer: TileRenderer) -> LayerHandler {
+        LayerHandler {
+            renderer,
+            layers: HashMap::default(),
+        }
+    }
+
+    /// Returns a weak reference to the tile renderer
+    pub fn get_renderer(&self) -> &TileRenderer {
+        &self.renderer
+    }
+
+    /// Creates a new Layer.
+    /// Returns `true` if it replaced an existing layer
+    pub fn add_layer(&mut self, layer: TileLayer) -> bool {
+        self.layers.insert(layer.title.clone(), layer).is_some()
+    }
+
+    /// Retrieves a layer given a Layer ID.
+    pub fn get_layer(&self, layer_id: &str) -> Option<&TileLayer> {
+        self.layers.get(layer_id)
+    }
+
+    /// Retrieves a mutable layer given a Layer ID.
+    pub fn get_layer_mut(&mut self, layer_id: &str) -> Option<&mut TileLayer> {
+        self.layers.get_mut(layer_id)
+    }
+
+    /// Deletes a layer.
+    pub fn remove_layer(&mut self, layer_id: &str) {
+        self.layers.remove(layer_id);
+    }
+
+    /// Returns an array of all the layer names.
+    pub fn get_layer_names(&self) -> std::collections::hash_map::Keys<'_, String, TileLayer> {
+        self.layers.keys()
+    }
+}
+
+// endregion:   LayerHandler
+
 // region:      TileRenderer
 
 /// The TileRenderer component.
 /// Allows rendering of Tiles to the screen in a grid-like fashion,
 /// similar to older consoles like the (S)NES and Gameboy (Color).
-#[derive(Clone, Debug, PartialEq, reflect::TypeUuid)]
-#[uuid = "24930d95-3e87-4c29-b23c-a9e74017b74a"]
+#[derive(Clone, Debug)]
 pub struct TileRenderer {
-    /// The list of Tiles to render to the screen.
-    /// Should be sized `width * height`, stored as `y * width + x`
-    tilemap: Vec<Option<Tile>>,
     /// A map of tiles that are combined into a larger tile.
     clusters: HashMap<ClusterId, Cluster>,
     /// A struct holding available tile sprites.
@@ -308,32 +343,24 @@ pub struct TileRenderer {
     /// A struct holding available color palettes.
     /// Each ColorSet held by it is mapped to a Color ID, referred to by the Tile struct.
     colors: ColorHandler,
-    /// The number of tiles wide the tilemap is to represent.
-    width: usize,
-    /// The number of tiles tall the tilemap is to represent.
-    height: usize,
-    /// Whether the rendered map has changed.
-    changed: bool,
+    /// Whether all layers should reload
+    require_reload: bool,
 }
 
 impl TileRenderer {
-    /// Creates a new TileRenderer. `width` and `height` are the size of the map,
-    /// while `tile_width` and `tile_height` are the size of the tiles.
-    pub fn new(width: usize, height: usize, tile_width: usize, tile_height: usize) -> TileRenderer {
+    /// Creates a new TileRenderer. `tile_width` and `tile_height` are the size of the tiles.
+    pub fn new(tile_width: usize, tile_height: usize) -> TileRenderer {
         TileRenderer {
-            tilemap: vec![None; (width * height) as usize],
             clusters: HashMap::new(),
             tile_sprites: TileSpriteHandler::new(tile_width, tile_height),
             colors: ColorHandler::default(),
-            width,
-            height,
-            changed: true,
+            require_reload: true,
         }
     }
 
-    /// Sets `self.changed` to false.
-    pub fn set_unchanged(&mut self) {
-        self.changed = false;
+    /// Sets a reload to be required on all layers
+    pub fn require_reload(&mut self) {
+        self.require_reload = true;
     }
 
     /// Add a new ColorSet with a designated Color ID.
@@ -342,8 +369,10 @@ impl TileRenderer {
     ///
     /// Will replace any ColorSet with the same ColorId.
     pub fn add_colorset(&mut self, color_id: &ColorIdRef, colorset: ColorSet) {
-        self.colors.add_colorset(color_id.to_string(), colorset);
-        self.changed = true;
+        let overwrote_color = self.colors.add_colorset(color_id.to_string(), colorset);
+        if overwrote_color {
+            self.require_reload();
+        }
     }
 
     /// Add a new ColorSet from a tuple arr with a designated Color ID.
@@ -352,9 +381,7 @@ impl TileRenderer {
     ///
     /// Will replace any ColorSet with the same ColorId.
     pub fn add_colorset_arr(&mut self, color_id: &ColorIdRef, arr: &[(PixelColorId, Rgba<u8>)]) {
-        self.colors
-            .add_colorset(color_id.to_string(), ColorSet::from_tuple(arr));
-        self.changed = true;
+        self.add_colorset(color_id, ColorSet::from_tuple(arr));
     }
 
     /// Gets the ColorSet with the provided Color ID.
@@ -374,9 +401,14 @@ impl TileRenderer {
         tile_id: &TileIdRef,
         tilesprite: TileSprite,
     ) -> Result<(), TileRendererError> {
-        self.changed = true;
-        self.tile_sprites
-            .add_tilesprite(tile_id.to_string(), tilesprite)
+        let overwrote_sprite = self
+            .tile_sprites
+            .add_tilesprite(tile_id.to_string(), tilesprite)?;
+
+        if overwrote_sprite {
+            self.require_reload()
+        }
+        Ok(())
     }
 
     /// Add a new TileSprite from an array with a designated Tile ID.
@@ -389,7 +421,6 @@ impl TileRenderer {
         tile_id: &TileIdRef,
         arr: &[PixelColorId],
     ) -> Result<(), TileRendererError> {
-        self.changed = true;
         self.add_tilesprite(tile_id, TileSprite::new(arr.to_vec()))
     }
 
@@ -407,7 +438,11 @@ impl TileRenderer {
 
     /// Adds a cluster
     pub fn add_cluster(&mut self, cluster_id: ClusterId, cluster: Cluster) {
-        self.clusters.insert(cluster_id, cluster);
+        let cluster_changed = self.clusters.insert(cluster_id, cluster).is_some();
+
+        if cluster_changed {
+            self.require_reload()
+        }
     }
 
     /// Creates and adds a cluster
@@ -429,12 +464,65 @@ impl TileRenderer {
         )
     }
 
-    /// Returns the index of these x and y coordinates in the tilemap
-    fn vec_index(&self, x: usize, y: usize) -> usize {
-        y * self.width as usize + x
+    /// Returns a cluster
+    pub fn get_cluster(&self, cluster_id: &ClusterIdRef) -> Result<&Cluster, TileRendererError> {
+        self.clusters
+            .get(cluster_id)
+            .ok_or_else(|| TileRendererError::InvalidClusterId(cluster_id.to_string()))
+    }
+}
+
+// endregion:   TileRenderer
+
+// region:      TileLayer
+
+/// A component struct used to indicate the map sprite.
+#[derive(Clone, Debug)]
+pub struct TileLayer {
+    /// The tiles on the map
+    tilemap: Vec<Vec<Option<Tile>>>,
+    /// Width of the Layer
+    width: usize,
+    /// Height of the Layer
+    height: usize,
+    /// Title of the layer
+    title: String,
+    /// The Z-order this layer is on
+    z_order: u32,
+    /// The position of this layer
+    position: Vec2,
+    /// Whether the TileLayer should be created (or recreated if after reload)
+    should_add: bool,
+    /// Whether the TileLayer requires a reload
+    requires_reload: bool,
+    /// Whether the TileLayer's z_order or position has changed
+    properties_changed: bool,
+}
+
+impl TileLayer {
+    pub fn new(title: String, width: usize, height: usize) -> Self {
+        Self {
+            tilemap: vec![vec![None; width]; height],
+            width,
+            height,
+            title,
+            z_order: 0,
+            position: Vec2::ZERO,
+            should_add: true,
+            requires_reload: true,
+            properties_changed: true,
+        }
     }
 
-    /// Sets a TileId with a ColorId at a position on the map.
+    pub fn set_changed(&mut self) {
+        self.requires_reload = true;
+    }
+
+    pub fn set_unchanged(&mut self) {
+        self.requires_reload = false;
+    }
+
+    /// Sets a TileId with a ColorId at a position on the layer.
     /// As co-ordinates are 0-indexed, `x` values are limited to
     /// `0..=self.width - 1`, and similarly with `y` values.
     ///
@@ -456,16 +544,15 @@ impl TileRenderer {
             self.height - 1
         );
 
-        self.changed = true;
+        self.set_changed();
 
-        let index = self.vec_index(x, y);
-        self.tilemap[index] = Some(Tile {
+        self.tilemap[y][x] = Some(Tile {
             id: tile_id.to_string(),
             color: color_id.to_string(),
         })
     }
 
-    /// Returns the Tile at a position on the map.
+    /// Returns the Tile at a position on the layer.
     /// As co-ordinates are 0-indexed, `x` values are limited to
     /// `0..=self.width - 1`, and similarly with `y` values.
     ///
@@ -487,20 +574,20 @@ impl TileRenderer {
             self.height - 1
         );
 
-        let index = self.vec_index(x, y);
-
-        self.tilemap[index]
+        self.tilemap[y][x]
             .as_ref()
             .ok_or(TileRendererError::TileNotSet { x, y })
     }
 
     /// Sets a cluster at a point
-    pub fn set_cluster(&mut self, x: isize, y: isize, cluster: &ClusterIdRef) {
-        let cluster = self
-            .clusters
-            .get(cluster)
-            .unwrap_or_else(|| panic!("set_cluster called with invalid ClusterId: `{}`", cluster))
-            .clone();
+    pub fn set_cluster(
+        &mut self,
+        renderer: &TileRenderer,
+        x: isize,
+        y: isize,
+        cluster: &ClusterIdRef,
+    ) {
+        let cluster = renderer.get_cluster(cluster).unwrap();
         for tile_x in 0..cluster.width {
             for tile_y in 0..cluster.height {
                 let tile = &cluster.tiles[tile_y * cluster.width + tile_x];
@@ -514,8 +601,8 @@ impl TileRenderer {
         }
     }
 
-    /// Clears the map by setting all tiles to these values.
-    pub fn clear_map(&mut self, tile_id: &TileIdRef, color_id: &ColorIdRef) {
+    /// Clears the layer by setting all tiles to these values.
+    pub fn clear_layer(&mut self, tile_id: &TileIdRef, color_id: &ColorIdRef) {
         for x in 0..self.width {
             for y in 0..self.height {
                 self.set_tile(x, y, tile_id, color_id)
@@ -523,12 +610,56 @@ impl TileRenderer {
         }
     }
 
+    /// Set the width of the layer
+    pub fn set_width(&mut self, width: usize) {
+        for v in self.tilemap.iter_mut() {
+            v.resize(width, None)
+        }
+        self.set_changed();
+    }
+
+    /// Get the width of the layer
+    pub fn get_width(&self) -> usize {
+        self.width
+    }
+
+    /// Set the z-index of the layer
+    pub fn set_z_index(&mut self, z_index: u32) {
+        self.z_order = z_index;
+        self.properties_changed = true;
+    }
+    /// Gets the z-index of the layer
+    pub fn get_z_index(&self) -> u32 {
+        self.z_order
+    }
+
+    /// Sets the x and y positioning of the layer
+    pub fn set_position(&mut self, pos: Vec2) {
+        self.properties_changed = true;
+        self.position = pos
+    }
+    /// Adds these x and y values to the position of the layer
+    pub fn add_position(&mut self, pos: Vec2) {
+        self.properties_changed = true;
+        self.position += pos
+    }
+    /// Gets the x and y position of the layer
+    pub fn get_position(&self) -> Vec2 {
+        self.position
+    }
+
+    /// Set the height of the layer
+    pub fn set_height(&mut self, height: usize) {
+        self.tilemap.resize(height, vec![None; self.height]);
+        self.set_changed();
+    }
+
     /// Returns an Image of the tilemap
-    pub fn as_image(&self) -> Image {
+    pub fn as_image(&self, renderer: &TileRenderer) -> Image {
         let map_width = self.width as u32;
         let map_height = self.height as u32;
-        let tile_width = self.tile_sprites.width as u32;
-        let tile_height = self.tile_sprites.height as u32;
+        let tile_width = renderer.tile_sprites.width as u32;
+        let tile_height = renderer.tile_sprites.height as u32;
 
         // Stores the image
         let mut map = RgbaImage::new(map_width * tile_width, map_height * tile_height);
@@ -548,8 +679,8 @@ impl TileRenderer {
                 // it should be transparent, which the image by default is.
                 // If there is a tile, actually apply that
                 if let Ok(tile) = tile {
-                    let tile_sprite = self.get_tilesprite(&tile.id).unwrap();
-                    let color_palette = self.get_colorset(&tile.color).unwrap();
+                    let tile_sprite = renderer.get_tilesprite(&tile.id).unwrap();
+                    let color_palette = renderer.get_colorset(&tile.color).unwrap();
                     let tile_data = tile_sprite.read();
                     for tile_x in 0..tile_width {
                         for tile_y in 0..tile_height {
@@ -569,18 +700,27 @@ impl TileRenderer {
     }
 }
 
-// endregion:   TileRenderer
+// endregion:   TileLayer
 
-/// A component struct used to indicate the map sprite.
-pub struct TileRendererMap {
-    renderer: Handle<TileRenderer>,
+/// Indicates this is the TileRenderer sprite
+#[derive(Default, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub struct TileRendererSprite;
+
+/// Indicates this is a TileLayer sprite
+#[derive(Default, Debug, PartialEq, Eq, Hash, Clone)]
+pub struct TileLayerSprite {
+    title: String,
 }
 
-/// A component bundle for spawning a Tile Renderer
-#[derive(Bundle)]
+/// A component bundle for spawning a Tile Renderer.
+///
+/// Requires a TileRenderer Resource to be created before use,
+/// however this cannot be checked by the program so the implementor of
+/// this bundle must do it.
+#[derive(Bundle, Default)]
 pub struct TileRendererBundle {
     /// The tile renderer component
-    pub tilerenderer: Handle<TileRenderer>,
+    pub tilerenderer: TileRendererSprite,
     /// The transform of the renderer
     pub transform: Transform,
     /// The world position
@@ -591,36 +731,40 @@ pub struct TileRendererBundle {
 
 // region:      Systems
 
-/// Load the map into the TileRenderer entity
+/// Load the maps
 fn load_map(
     mut commands: Commands,
-    mut new_tilemaps: Query<(Entity, &mut Handle<TileRenderer>)>,
+    renderer_entity: Query<Entity, With<TileRendererSprite>>,
     mut image_assets: ResMut<Assets<Image>>,
-    mut tr_assets: ResMut<Assets<TileRenderer>>,
+    mut lh: ResMut<LayerHandler>,
 ) {
-    for (map, tr) in new_tilemaps.iter_mut() {
-        let tilerenderer = tr_assets
-            .get_mut(tr.id)
-            .expect("No TileRenderer asset found for entity with TileRenderer component.");
-        if tilerenderer.changed {
-            let image = tilerenderer.as_image();
+    if let Ok(tr) = renderer_entity.single() {
+        // Clone all the items and collect into a vector so we dont get an 'immut + mut' error.
+        let layer_names = lh.get_layer_names().cloned().collect::<Vec<String>>();
+        let renderer = lh.get_renderer().clone();
 
-            commands.entity(map).with_children(|parent| {
-                parent
-                    .spawn_bundle(SpriteBundle {
-                        image: image_assets.add(image),
-                        sprite: Sprite {
-                            centered: false,
+        for layer_name in layer_names {
+            let layer = lh.get_layer_mut(&layer_name).unwrap();
+
+            if layer.should_add {
+                let image = layer.as_image(&renderer);
+                commands.entity(tr).with_children(|parent| {
+                    parent
+                        .spawn_bundle(SpriteBundle {
+                            image: image_assets.add(image),
+                            sprite: Sprite {
+                                centered: false,
+                                ..Default::default()
+                            },
                             ..Default::default()
-                        },
-                        ..Default::default()
-                    })
-                    .insert(TileRendererMap {
-                        renderer: tr.clone(),
-                    });
-            });
+                        })
+                        .insert(TileLayerSprite {
+                            title: layer_name.clone(),
+                        });
+                });
+            }
 
-            tilerenderer.set_unchanged();
+            layer.should_add = false;
         }
     }
 }
@@ -629,17 +773,18 @@ fn load_map(
 /// The load_map system will handle inserting the image back in.
 fn reload_map(
     mut commands: Commands,
-    maps: Query<(Entity, &Handle<Image>, &TileRendererMap)>,
+    maps: Query<(Entity, &Handle<Image>, &TileLayerSprite)>,
     mut asset_server: ResMut<Assets<Image>>,
-    mut tr_assets: ResMut<Assets<TileRenderer>>,
+    mut lh: ResMut<LayerHandler>,
 ) {
     for (entity, image, map) in maps.iter() {
-        let tilerenderer = tr_assets
-            .get_mut(map.renderer.id)
-            .expect("No TileRenderer asset found for entity with TileRendererMap component.");
-        if tilerenderer.changed {
+        let layer = lh.get_layer_mut(&map.title).unwrap();
+
+        if layer.requires_reload {
             commands.entity(entity).despawn();
             asset_server.remove(image);
+            layer.requires_reload = false;
+            layer.should_add = true;
         }
     }
 }

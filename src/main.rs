@@ -20,7 +20,7 @@ fn main() {
         title: "Topdown Project".to_string(),
         width: 160. * SCALE,
         height: 144. * SCALE,
-        vsync: true,
+        // vsync: true,
         // resizable: false,
         ..Default::default()
     });

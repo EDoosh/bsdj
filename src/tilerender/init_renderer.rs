@@ -1,21 +1,25 @@
-use crate::states;
 use crate::tilerender::*;
-use bevy::prelude::*;
-use bevy_retrograde::prelude::*;
+use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 
-pub struct MapRendererPlugin;
+pub struct InitRendererPlugin;
 
-impl Plugin for MapRendererPlugin {
+impl Plugin for InitRendererPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_startup_system(init_map_renderer.system());
+        let mut tr = TileRenderer::new(8, 8);
+        init_map_renderer(&mut tr);
+        init_ui_renderer(&mut tr);
+
+        let mut lh = LayerHandler::new(tr);
+        construct_layers(&mut lh);
+        app.insert_resource(lh);
+
+        app.add_startup_system(spawn_renderer.system());
+        app.add_system(fps_counter.system());
     }
 }
 
-pub struct MapRenderer;
-
-fn init_map_renderer(mut commands: Commands, mut tr_assets: ResMut<Assets<TileRenderer>>) {
-    let mut tilerenderer = TileRenderer::new(20, 18, 8, 8);
-    tilerenderer.add_colorset_arr(
+fn init_map_renderer(tr: &mut TileRenderer) {
+    tr.add_colorset_arr(
         "lushgreen",
         &[
             (0, core::image::Rgba([13, 41, 24, 255])),
@@ -24,24 +28,12 @@ fn init_map_renderer(mut commands: Commands, mut tr_assets: ResMut<Assets<TileRe
             (3, core::image::Rgba([215, 255, 213, 255])),
         ],
     );
-    parse_tilesprite::TileSpriteParser::parse_and_add(
-        "assets/map/map.tilesprite",
-        &mut tilerenderer,
-    )
-    .unwrap();
+    parse_tilesprite::TileSpriteParser::parse_and_add("assets/map/map.tilesprite", tr).unwrap();
 
-    add_clusters(&mut tilerenderer);
-
-    commands
-        .spawn_bundle(TileRendererBundle {
-            tilerenderer: tr_assets.add(tilerenderer),
-            transform: Transform::from_xyz(0., 0., 0.),
-            global_transform: GlobalTransform::default(),
-        })
-        .insert(MapRenderer);
+    add_map_clusters(tr);
 }
 
-fn add_clusters(tilerenderer: &mut TileRenderer) {
+fn add_map_clusters(tilerenderer: &mut TileRenderer) {
     tilerenderer.add_new_cluster(
         "map_tree",
         4,
@@ -151,4 +143,46 @@ fn add_clusters(tilerenderer: &mut TileRenderer) {
             Tile::new("map_house_window_22", "lushgreen"),
         ],
     );
+}
+
+fn init_ui_renderer(tr: &mut TileRenderer) {
+    tr.add_colorset_arr(
+        "grayscale",
+        &[
+            (0, core::image::Rgba([9, 10, 22, 255])),
+            (1, core::image::Rgba([99, 118, 126, 255])),
+            (2, core::image::Rgba([160, 173, 178, 255])),
+            (3, core::image::Rgba([224, 232, 237, 255])),
+        ],
+    );
+    parse_tilesprite::TileSpriteParser::parse_and_add("assets/fonts/lower.tilesprite", tr).unwrap();
+    parse_tilesprite::TileSpriteParser::parse_and_add("assets/fonts/glyphs.tilesprite", tr)
+        .unwrap();
+
+    // let all_tileids = tilerenderer.get_all_tile_ids().clone();
+    // for (idx, tileid) in all_tileids.iter().enumerate() {
+    //     tilerenderer.set_tile(idx % 20, idx / 20, tileid, "grayscale");
+    // }
+}
+
+fn construct_layers(lh: &mut LayerHandler) {
+    lh.add_layer(TileLayer::new("map".to_string(), 20, 18));
+    lh.add_layer(TileLayer::new("ui".to_string(), 20, 18));
+}
+
+fn spawn_renderer(mut commands: Commands) {
+    commands.spawn_bundle(TileRendererBundle::default());
+}
+
+fn fps_counter(mut lh: ResMut<LayerHandler>, diagnostics: Res<Diagnostics>) {
+    if let Some(uirenderer) = lh.get_layer_mut("ui") {
+        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(average) = fps.average() {
+                let average = format!("{:03}", average.floor());
+                uirenderer.set_tile(17, 17, &format!("lower_{}", &average[0..=0]), "grayscale");
+                uirenderer.set_tile(18, 17, &format!("lower_{}", &average[1..=1]), "grayscale");
+                uirenderer.set_tile(19, 17, &format!("lower_{}", &average[2..=2]), "grayscale");
+            }
+        }
+    }
 }

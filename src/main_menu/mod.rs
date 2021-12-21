@@ -19,7 +19,7 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn enter_menu(mut commands: Commands, mut tilerenderer: Query<&TileRenderer, With<MapRenderer>>) {}
+fn enter_menu(mut commands: Commands, mut tr: ResMut<TileRenderer>) {}
 
 fn update_menu(mut commands: Commands) {}
 
