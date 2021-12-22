@@ -8,6 +8,12 @@
 		},
 		{
 			"path": "..\\bevy_retrograde-master"
+		},
+		{
+			"path": "..\\bevy-main"
+		},
+		{
+			"path": "..\\rust_invaders"
 		}
 	],
 	"settings": {}

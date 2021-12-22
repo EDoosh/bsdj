@@ -1,11 +1,11 @@
 use super::*;
 use std::fs;
 
-/// Parses a `.tilesprite` file into a `HashMap<TileId, TileSprite>`.
+/// Parses a `.tilesprite` file and inserts it into the TileRenderer.
 ///
 /// # FILE STRUCTURE
 ///
-/// A valid file structure starts with `=[sprite_prefix],[tilewidth],[tileheight]`.
+/// A valid file structure starts with `=[tilewidth],[tileheight]`.
 /// It then has the sprite data, of the format `_[sprite_name]`, followed on the next
 /// `tileheight` lines by `.[PixelColorId] [PixelColorId] [PixelColorId]...`, where
 /// `[PixelColorId]` is repeated `tilewidth` times. Any lines not starting with
@@ -19,7 +19,7 @@ pub struct TileSpriteParser {
     /// Where the TileSprites are stored, alongside their TileIds.
     /// A vector is used over a hashmap so that it can be stored in the order it was inserted.
     tilesprites: Vec<(TileId, TileSprite)>,
-    title: String,
+    prefix: String,
     tile_width: usize,
     tile_height: usize,
 }
@@ -27,9 +27,10 @@ pub struct TileSpriteParser {
 impl TileSpriteParser {
     pub fn parse_and_add(
         filename: &str,
+        prefix: &str,
         tilerenderer: &mut TileRenderer,
     ) -> Result<(), TileRendererError> {
-        let tilesprites = TileSpriteParser::parse(filename);
+        let tilesprites = TileSpriteParser::parse(filename, prefix);
         for (tileid, tilesprite) in tilesprites {
             tilerenderer.add_tilesprite(&tileid, tilesprite)?
         }
@@ -38,15 +39,15 @@ impl TileSpriteParser {
 
     /// Parses the `.tilesprite` format found in the assets.
     /// Returns a hashmap of TileSprites to their Tile IDs.
-    pub fn parse(filename: &str) -> Vec<(TileId, TileSprite)> {
+    pub fn parse(filename: &str, prefix: &str) -> Vec<(TileId, TileSprite)> {
         let contents = fs::read_to_string(filename).unwrap();
-        let (title, width, height) = TileSpriteParser::parse_metadata(&contents, filename);
+        let (width, height) = TileSpriteParser::parse_metadata(&contents, filename);
 
         let mut tsp = TileSpriteParser {
             contents,
             // Temporary Tilesprite handler
             tilesprites: vec![],
-            title,
+            prefix: prefix.to_string(),
             tile_width: width,
             tile_height: height,
         };
@@ -57,8 +58,8 @@ impl TileSpriteParser {
     }
 
     /// Finds a line starting with `=` and attempts to find the
-    /// title, tile width, and tile height from it.
-    fn parse_metadata(contents: &str, filename: &str) -> (String, usize, usize) {
+    /// tile width and tile height from it.
+    fn parse_metadata(contents: &str, filename: &str) -> (usize, usize) {
         let mut lines = contents.lines();
         let mut line = lines
             .next()
@@ -83,9 +84,6 @@ impl TileSpriteParser {
         }
 
         let mut metadata = line[1..].split(',');
-        let title = metadata.next().unwrap_or_else(|| {
-            panic!("No metadata title found for TileSprite file `{}`", filename)
-        });
         let width = metadata.next().unwrap_or_else(|| {
             panic!("No metadata width found for TileSprite file `{}`", filename)
         });
@@ -96,7 +94,6 @@ impl TileSpriteParser {
             )
         });
         (
-            title.to_string(),
             width.parse::<usize>().unwrap(),
             height.parse::<usize>().unwrap(),
         )
@@ -124,7 +121,7 @@ impl TileSpriteParser {
             }
 
             // The TileId of this sprite.
-            let id = self.title.clone() + &line_trimmed[1..];
+            let id = self.prefix.clone() + "_" + &line_trimmed[1..];
             // Holds the PixelColorIds from the TileSprite
             let mut spritedata = vec![];
             // The number of lines with spritedata on them

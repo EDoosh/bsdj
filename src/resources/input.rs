@@ -1,0 +1,167 @@
+use crate::states;
+use crate::tilerender::*;
+use crate::utils;
+use bevy::input::{
+    keyboard::KeyboardInput,
+    mouse::{MouseButtonInput, MouseWheel},
+};
+use bevy::prelude::*;
+use std::collections::HashMap;
+use std::collections::HashSet;
+
+pub struct InputPlugin;
+
+impl Plugin for InputPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.insert_resource(InputRes::new());
+        app.add_system_set_to_stage(
+            CoreStage::PreUpdate,
+            SystemSet::new().with_system(update_inputs.system()),
+        );
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+pub enum InputType {
+    Key(KeyCode),
+    Mouse(MouseButton),
+}
+
+/// A struct containing user inputs.
+pub struct InputRes {
+    /// The currently pressed keys, along with when they started being held.
+    pressed_inputs: HashMap<InputType, f64>,
+    /// The current time in seconds since the start.
+    current_time: f64,
+    /// Stores the previous 16 key inputs.
+    key_history: utils::SizedHeadedArray<InputType, 16>,
+    /// The current cursor position.
+    cursor_position: (i32, i32),
+    /// Scroll delta
+    scroll_delta: f32,
+}
+
+impl InputRes {
+    pub fn new() -> InputRes {
+        InputRes {
+            pressed_inputs: HashMap::new(),
+            current_time: 0.,
+            key_history: utils::SizedHeadedArray::new(),
+            cursor_position: (0, 0),
+            scroll_delta: 0.,
+        }
+    }
+
+    /// Gets the current time
+    pub fn get_time(&self) -> f64 {
+        self.current_time
+    }
+
+    /// Returns the current cursor position on screen.
+    pub fn get_cursor_position(&self) -> (i32, i32) {
+        self.cursor_position
+    }
+
+    /// Returns the current tile the cursor is hovering over.
+    pub fn get_cursor_tile_position(&self) -> (i32, i32) {
+        (self.cursor_position.0 / 8, self.cursor_position.1 / 8)
+    }
+
+    /// Returns the current scroll delta.
+    pub fn get_scroll_delta(&self) -> i32 {
+        self.scroll_delta as i32
+    }
+
+    /// Sets an input to be pressed
+    fn press_key(&mut self, key: InputType) {
+        self.pressed_inputs.insert(key, self.current_time);
+    }
+
+    /// Sets an input to no longer be pressed
+    fn release_key(&mut self, key: InputType) {
+        self.pressed_inputs.remove(&key);
+    }
+
+    /// Returns the currently pressed inputs.
+    pub fn get_pressed_inputs(&self) -> HashSet<InputType> {
+        self.pressed_inputs.keys().cloned().collect()
+    }
+
+    /// Returns true if all the items in the array are being pressed.
+    /// NOTE: Other inputs may be pressed. If you do not wish for other inputs
+    /// to be pressed, check `InputRes::exclusively_pressed`
+    pub fn is_pressed(&self, inputs: &[InputType]) -> bool {
+        HashSet::from_iter(inputs.iter().cloned()).is_subset(&self.get_pressed_inputs())
+    }
+
+    /// Returns true if only the items in the array are being pressed.
+    /// NOTE: Other inputs may not be pressed. If you wish for other inputs
+    /// to be allowed to be pressed, check `InputRes::is_pressed`
+    pub fn exclusively_pressed(&self, inputs: &[InputType]) -> bool {
+        self.get_pressed_inputs() == HashSet::from_iter(inputs.iter().cloned())
+    }
+
+    /// Check if an input was pressed this frame.
+    pub fn just_pressed(&self, input: &InputType) -> bool {
+        if let Some(pressed_at) = self.pressed_inputs.get(input) {
+            return *pressed_at == self.get_time();
+        }
+        false
+    }
+}
+
+fn update_inputs(
+    mut input: ResMut<InputRes>,
+    wnds: Res<Windows>,
+    mut keyboard: EventReader<KeyboardInput>,
+    mut mouse: EventReader<MouseButtonInput>,
+    mut wheel: EventReader<MouseWheel>,
+    time: Res<Time>,
+) {
+    input.current_time = time.seconds_since_startup();
+
+    // For each keyboard event (releases or presses)
+    for key in keyboard.iter() {
+        // For some reason Keycode can be None?
+        if let Some(keycode) = key.key_code {
+            if key.state.is_pressed() {
+                input.press_key(InputType::Key(keycode))
+            } else {
+                input.release_key(InputType::Key(keycode))
+            }
+        }
+    }
+
+    // For each mouse button event (releases or presses)
+    for btn in mouse.iter() {
+        if btn.state.is_pressed() {
+            input.press_key(InputType::Mouse(btn.button))
+        } else {
+            input.release_key(InputType::Mouse(btn.button))
+        }
+    }
+
+    // Get the remainder from the previous frame
+    // and set it to the current frame
+    input.scroll_delta = input.scroll_delta.rem_euclid(1.);
+    // For each mouse wheel event (there should only be one)
+    // Note: Wheel is empty if there is no change in scroll.
+    for whl in wheel.iter() {
+        input.scroll_delta += whl.y;
+    }
+
+    // https://bevy-cheatbook.github.io/cookbook/cursor2world.html
+    // get the primary window
+    let wnd = wnds.get_primary().unwrap();
+
+    // check if the cursor is in the primary window
+    if let Some(cursor_pos) = wnd.cursor_position() {
+        let cursor_x = (cursor_pos.x / (wnd.width() / 160.)) as i32;
+        let cursor_y = (cursor_pos.y / (wnd.height() / 144.)) as i32;
+        // The Y-value does not conform to standard computer-based positioning.
+        // Adjust it so it is. Yes 143 is the correct value so the top is 0 and bottom is 143.
+        let cursor_y = -cursor_y + 143;
+
+        input.cursor_position = (cursor_x, cursor_y);
+    }
+}

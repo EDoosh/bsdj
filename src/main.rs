@@ -1,12 +1,13 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowMode};
 use bevy_retrograde::prelude::*;
 
-mod game;
-mod main_menu;
+mod resources;
+mod scenes;
 mod states;
 mod tilerender;
+mod utils;
 
-const SCALE: f32 = 5.;
+const SCALE: f32 = 4.;
 
 #[derive(StageLabel, Debug, Eq, Hash, PartialEq, Clone)]
 struct GameStage;
@@ -20,8 +21,9 @@ fn main() {
         title: "Topdown Project".to_string(),
         width: 160. * SCALE,
         height: 144. * SCALE,
-        // vsync: true,
+        vsync: true,
         // resizable: false,
+        mode: WindowMode::Windowed,
         ..Default::default()
     });
 
@@ -29,15 +31,16 @@ fn main() {
 
     // region:      ADD THE PLUGINS
     app.add_plugins(RetroPlugins);
-    app.add_plugin(game::GamePlugin);
+    app.add_plugin(resources::ResourcePlugin);
+    app.add_plugin(scenes::ScenePlugin);
     app.add_plugin(tilerender::TileRenderPlugin);
     // endregion:   ADD THE PLUGINS
 
     // Add the setup for the app.
     app.add_startup_system(setup.system());
 
-    // Set the current game state to be the main game.
-    app.add_state(states::States::Game);
+    // Set the current game state to be the song screen.
+    app.add_state(states::States::Song);
 
     // RUN THE PROGRAM
     app.run();

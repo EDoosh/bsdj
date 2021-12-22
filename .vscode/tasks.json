@@ -10,6 +10,14 @@
 				"kind": "build",
 			},
 			"label": "Rust: cargo run - topdown-test"
+		},
+		{
+			"type": "shell",
+			"command": "cargo",
+			"args": ["run", "--release"],
+			"problemMatcher": ["$rustc"],
+			"group": "build",
+			"label": "Rust: cargo run --release - topdown-test"
 		}
 	]
 }
