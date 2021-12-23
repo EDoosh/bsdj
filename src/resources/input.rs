@@ -1,5 +1,3 @@
-use crate::states;
-use crate::tilerender::*;
 use crate::utils;
 use bevy::input::{
     keyboard::KeyboardInput,
@@ -12,11 +10,11 @@ use std::collections::HashSet;
 pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.insert_resource(InputRes::new());
         app.add_system_set_to_stage(
             CoreStage::PreUpdate,
-            SystemSet::new().with_system(update_inputs.system()),
+            SystemSet::new().with_system(update_inputs),
         );
     }
 }

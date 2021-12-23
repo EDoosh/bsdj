@@ -1,5 +1,6 @@
 use super::*;
-use bevy_retrograde::core::image::Rgba;
+use bevy::prelude::Color;
+use image::Rgba;
 use std::fs;
 
 const FIVE_RATIO: f64 = 255. / 31.;

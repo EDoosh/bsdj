@@ -9,6 +9,7 @@ pub enum States {
     Synth,
     Wave,
     Speech,
+    Word,
     Table,
     Groove,
     File,

@@ -6,6 +6,25 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "*", default-features = false }
-bevy_retrograde = "*"
+image = "*"
+bevy = { path = "../bevy-main", version = "0.5.0" }
+wgpu = "*"
+# bevy-inspector-egui = "*"
 thiserror = "*"
+
+[profile.dev]
+opt-level = 2
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 4
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = "fat"
+debug-assertions = false
+codegen-units = 1
+panic = "abort"

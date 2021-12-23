@@ -7,15 +7,11 @@ use bevy::prelude::*;
 pub struct SideBarPlugin;
 
 impl Plugin for SideBarPlugin {
-    fn build(&self, app: &mut AppBuilder) {
-        app.add_system_set(
-            SystemSet::on_enter(states::States::Song).with_system(enter_scene.system()),
-        );
-        app.add_system_set(
-            SystemSet::on_update(states::States::Song).with_system(draw_screen.system()),
-        );
+    fn build(&self, app: &mut App) {
+        app.add_system_set(SystemSet::on_enter(states::States::Song).with_system(enter_scene));
+        app.add_system_set(SystemSet::on_update(states::States::Song).with_system(draw_screen));
         // app.add_system_set(
-        //     SystemSet::on_exit(states::States::Song).with_system(exit_game.system()),
+        //     SystemSet::on_exit(states::States::Song).with_system(exit_game),
         // );
     }
 }

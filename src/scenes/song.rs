@@ -9,21 +9,19 @@ use bevy::prelude::*;
 pub struct SongScene;
 
 impl Plugin for SongScene {
-    fn build(&self, app: &mut AppBuilder) {
-        app.add_system_set(
-            SystemSet::on_enter(states::States::Song).with_system(enter_scene.system()),
-        );
+    fn build(&self, app: &mut App) {
+        app.add_system_set(SystemSet::on_enter(states::States::Song).with_system(enter_scene));
         app.add_system_set(
             SystemSet::on_update(states::States::Song)
-                .with_system(handle_scroll.system())
-                .with_system(move_cursor.system())
-                .with_system(type_chain.system())
-                .with_system(delete_chain_system.system())
-                .with_system(bookmark_chain_system.system())
-                .with_system(draw_screen.system()),
+                .with_system(handle_scroll)
+                .with_system(move_cursor)
+                .with_system(type_chain)
+                .with_system(delete_chain_system)
+                .with_system(bookmark_chain_system)
+                .with_system(draw_screen),
         );
         // app.add_system_set(
-        //     SystemSet::on_exit(states::States::Song).with_system(exit_game.system()),
+        //     SystemSet::on_exit(states::States::Song).with_system(exit_game),
         // );
     }
 }

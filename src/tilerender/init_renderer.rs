@@ -8,7 +8,7 @@ const COLORSETS: &[&str] = &["cute"];
 pub struct InitRendererPlugin;
 
 impl Plugin for InitRendererPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         let mut tr = TileRenderer::new(8, 8);
         init_fonts(&mut tr);
         init_glyphs(&mut tr);
@@ -18,9 +18,9 @@ impl Plugin for InitRendererPlugin {
         construct_layers(&mut lh);
         app.insert_resource(lh);
 
-        app.add_startup_system(spawn_renderer.system());
+        app.add_startup_system(spawn_renderer);
         #[cfg(debug_assertions)]
-        app.add_system(fps_counter.system());
+        app.add_system(fps_counter);
     }
 }
 
@@ -54,7 +54,7 @@ fn construct_layers(lh: &mut LayerHandler) {
     ui.set_z_index(10.);
     lh.add_layer(ui);
 
-    let mut headingtext = TileLayer::new("headingtext".to_string(), 0, 1);
+    let mut headingtext = TileLayer::new("headingtext".to_string(), 20, 1);
     headingtext.set_z_index(20.);
     lh.add_layer(headingtext);
 

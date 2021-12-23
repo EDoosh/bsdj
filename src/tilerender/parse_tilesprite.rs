@@ -157,7 +157,7 @@ impl TileSpriteParser {
                 data_lines += 1;
             }
 
-            let tilesprite = TileSprite { sprite: spritedata };
+            let tilesprite = TileSprite::new(spritedata);
             self.tilesprites.push((id, tilesprite));
 
             // Ensures that it doesn't get crash due to `Unexpected spritedata line` when it next goes around

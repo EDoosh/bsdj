@@ -10,7 +10,7 @@ const FREEZE_TIME_END: f32 = 5.;
 pub struct HeadingTextPlugin;
 
 impl Plugin for HeadingTextPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_event::<HeadingTextEvent>();
         app.insert_resource(HeadingTextResource {
             active: false,
@@ -18,8 +18,8 @@ impl Plugin for HeadingTextPlugin {
             start_time: 0.,
         });
 
-        app.add_system(read_event.system());
-        app.add_system(move_text.system());
+        app.add_system(read_event);
+        app.add_system(move_text);
     }
 }
 
