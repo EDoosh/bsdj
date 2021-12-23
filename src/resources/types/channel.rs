@@ -57,7 +57,7 @@ impl Channels {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SongChannel {
     /// The chains on the channel.
-    chains: [u8; 256],
+    chains: Vec<u8>,
     /// A hashset indicating where the bookmarks are.
     /// Limited to 16 at a time.
     bookmarks: HashSet<u8>,
@@ -66,7 +66,7 @@ pub struct SongChannel {
 impl SongChannel {
     pub fn new() -> SongChannel {
         SongChannel {
-            chains: [0xff; 256],
+            chains: vec![EMPTY_CHAIN; 0x100],
             bookmarks: HashSet::new(),
         }
     }
@@ -102,6 +102,24 @@ impl SongChannel {
         self.set_chain(index, EMPTY_CHAIN)
     }
 
+    /// Moves all values below this spot in the chain up
+    pub fn remove_chain_slot(&mut self, index: u8) {
+        self.chains.remove(index as usize);
+        self.clear_bookmark(index);
+
+        let mut bookmarks = HashSet::new();
+        for bookmark in self.bookmarks.iter() {
+            if *bookmark > index {
+                bookmarks.insert(bookmark - 1);
+            } else {
+                bookmarks.insert(*bookmark);
+            }
+        }
+        self.bookmarks = bookmarks;
+
+        self.chains.push(EMPTY_CHAIN)
+    }
+
     /// Checks if an index is bookmarked.
     /// NOTE: The index 0xff can not be bookmarked.
     pub fn is_bookmarked(&self, index: u8) -> bool {
@@ -109,27 +127,28 @@ impl SongChannel {
     }
 
     /// Sets an index to be bookmarked.
-    /// Returns if it was previously bookmarked or not.
-    pub fn set_bookmark(&mut self, index: u8) -> bool {
-        !self.bookmarks.insert(index)
+    /// Returns true if it was previously bookmarked.
+    pub fn set_bookmark(&mut self, index: u8) -> Result<bool, &str> {
+        if self.bookmarks.len() >= 16 {
+            Err("Too many bookmarks! Only 16 allowed per channel.")
+        } else {
+            Ok(!self.bookmarks.insert(index))
+        }
     }
 
     /// Clears a bookmark from an index.
-    /// Returns if it was previously bookmarked or not.
+    /// Returns true if it was previously bookmarked.
     pub fn clear_bookmark(&mut self, index: u8) -> bool {
         self.bookmarks.remove(&index)
     }
 
     /// Toggles a bookmark at an index.
-    /// Returns if it was previously bookmarked or not.
-    pub fn toggle_bookmark(&mut self, index: u8) -> bool {
-        // If it failed to insert because it already exists,
-        // clear the bookmark and return false.
-        // Else return true.
-        if !self.set_bookmark(index) {
-            self.clear_bookmark(index)
+    /// Returns true if it was previously bookmarked.
+    pub fn toggle_bookmark(&mut self, index: u8) -> Result<bool, &str> {
+        if self.is_bookmarked(index) {
+            Ok(self.clear_bookmark(index))
         } else {
-            false
+            self.set_bookmark(index)
         }
     }
 }

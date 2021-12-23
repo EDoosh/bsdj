@@ -27,33 +27,89 @@ pub enum InputType {
     Mouse(MouseButton),
 }
 
+impl InputType {
+    /// Returns the 4 directional keycodes.
+    pub fn directional_keycodes() -> [InputType; 4] {
+        [
+            InputType::Key(KeyCode::Up),
+            InputType::Key(KeyCode::Down),
+            InputType::Key(KeyCode::Left),
+            InputType::Key(KeyCode::Right),
+        ]
+    }
+
+    /// Returns an Option where the value is the x and y to change by.
+    pub fn directional_change(&self) -> Option<(isize, isize)> {
+        match self {
+            InputType::Key(KeyCode::Up) => Some((0, 1)),
+            InputType::Key(KeyCode::Down) => Some((0, -1)),
+            InputType::Key(KeyCode::Left) => Some((-1, 0)),
+            InputType::Key(KeyCode::Right) => Some((1, 0)),
+            _ => None,
+        }
+    }
+
+    /// Returns the 0-F keycodes.
+    pub fn hex_keycodes() -> [InputType; 16] {
+        [
+            InputType::Key(KeyCode::Key0),
+            InputType::Key(KeyCode::Key1),
+            InputType::Key(KeyCode::Key2),
+            InputType::Key(KeyCode::Key3),
+            InputType::Key(KeyCode::Key4),
+            InputType::Key(KeyCode::Key5),
+            InputType::Key(KeyCode::Key6),
+            InputType::Key(KeyCode::Key7),
+            InputType::Key(KeyCode::Key8),
+            InputType::Key(KeyCode::Key9),
+            InputType::Key(KeyCode::A),
+            InputType::Key(KeyCode::B),
+            InputType::Key(KeyCode::C),
+            InputType::Key(KeyCode::D),
+            InputType::Key(KeyCode::E),
+            InputType::Key(KeyCode::F),
+        ]
+    }
+
+    pub fn input_to_num(&self) -> Option<usize> {
+        InputType::hex_keycodes().iter().position(|x| x == self)
+    }
+}
+
 /// A struct containing user inputs.
 pub struct InputRes {
     /// The currently pressed keys, along with when they started being held.
-    pressed_inputs: HashMap<InputType, f64>,
-    /// The current time in seconds since the start.
-    current_time: f64,
+    pressed_inputs: HashMap<InputType, u64>,
+    /// The current time in frames since the start.
+    current_time: u64,
     /// Stores the previous 16 key inputs.
     key_history: utils::SizedHeadedArray<InputType, 16>,
     /// The current cursor position.
     cursor_position: (i32, i32),
     /// Scroll delta
     scroll_delta: f32,
+    /// The delay between a key initially being pressed and it repeating.
+    /// A value of None means no repeat.
+    key_delay: Option<u64>,
+    /// The time between repeating key presses.
+    key_repeat: u64,
 }
 
 impl InputRes {
     pub fn new() -> InputRes {
         InputRes {
             pressed_inputs: HashMap::new(),
-            current_time: 0.,
+            current_time: 0,
             key_history: utils::SizedHeadedArray::new(),
             cursor_position: (0, 0),
             scroll_delta: 0.,
+            key_delay: Some(7),
+            key_repeat: 3,
         }
     }
 
     /// Gets the current time
-    pub fn get_time(&self) -> f64 {
+    pub fn get_time(&self) -> u64 {
         self.current_time
     }
 
@@ -74,6 +130,10 @@ impl InputRes {
 
     /// Sets an input to be pressed
     fn press_key(&mut self, key: InputType) {
+        // Check it's not from a repeating keypress
+        if self.pressed_inputs.contains_key(&key) {
+            return;
+        }
         self.pressed_inputs.insert(key, self.current_time);
     }
 
@@ -108,6 +168,29 @@ impl InputRes {
         }
         false
     }
+
+    /// Check if an input with key-delay/repeat has been triggered
+    pub fn dr_pressed(&self, input: &InputType) -> bool {
+        if let Some(pressed_at) = self.pressed_inputs.get(input) {
+            let time = self.get_time();
+            let since_pressed = time - *pressed_at;
+            // Key started being pressed this frame
+            if since_pressed == 0 {
+                true
+            } else if let Some(delay) = self.key_delay {
+                if since_pressed < delay {
+                    false
+                } else {
+                    (since_pressed - delay) % self.key_repeat == 0
+                }
+            } else {
+                false
+            }
+        } else {
+            // Key isn't even down.
+            false
+        }
+    }
 }
 
 fn update_inputs(
@@ -116,9 +199,8 @@ fn update_inputs(
     mut keyboard: EventReader<KeyboardInput>,
     mut mouse: EventReader<MouseButtonInput>,
     mut wheel: EventReader<MouseWheel>,
-    time: Res<Time>,
 ) {
-    input.current_time = time.seconds_since_startup();
+    input.current_time += 1;
 
     // For each keyboard event (releases or presses)
     for key in keyboard.iter() {

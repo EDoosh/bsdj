@@ -1,6 +1,7 @@
 use bevy::{prelude::*, window::WindowMode};
 use bevy_retrograde::prelude::*;
 
+mod events;
 mod resources;
 mod scenes;
 mod states;
@@ -31,6 +32,7 @@ fn main() {
 
     // region:      ADD THE PLUGINS
     app.add_plugins(RetroPlugins);
+    app.add_plugin(events::EventsPlugin);
     app.add_plugin(resources::ResourcePlugin);
     app.add_plugin(scenes::ScenePlugin);
     app.add_plugin(tilerender::TileRenderPlugin);

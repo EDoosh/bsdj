@@ -53,8 +53,8 @@ impl SongCursor {
         // Update the camera
         if self.y < self.cam {
             self.cam = self.y
-        } else if self.y > self.cam + 16 {
-            self.cam = self.y - 16
+        } else if self.y > self.cam + 15 {
+            self.cam = self.y - 15
         }
     }
     /// Add one to the song cursor's y position.

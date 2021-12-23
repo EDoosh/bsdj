@@ -54,8 +54,12 @@ fn construct_layers(lh: &mut LayerHandler) {
     ui.set_z_index(10.);
     lh.add_layer(ui);
 
+    let mut headingtext = TileLayer::new("headingtext".to_string(), 0, 1);
+    headingtext.set_z_index(20.);
+    lh.add_layer(headingtext);
+
     let mut fps = TileLayer::new("fps".to_string(), 20, 18);
-    fps.set_z_index(20.);
+    fps.set_z_index(100.);
     lh.add_layer(fps);
 }
 

@@ -7,6 +7,7 @@ pub enum Colors {
     Details,
     Cursor,
     TextCursor,
+    Empty,
 }
 
 impl fmt::Display for Colors {
@@ -20,6 +21,7 @@ impl fmt::Display for Colors {
                 Colors::Details => "details",
                 Colors::Cursor => "cursor",
                 Colors::TextCursor => "textcursor",
+                Colors::Empty => "empty",
             }
         )
     }

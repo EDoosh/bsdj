@@ -338,11 +338,6 @@ impl LayerHandler {
         self.layers.get_mut(layer_id)
     }
 
-    /// Deletes a layer.
-    pub fn remove_layer(&mut self, layer_id: &str) {
-        self.layers.remove(layer_id);
-    }
-
     /// Returns an array of all the layer names.
     pub fn get_layer_names(&self) -> std::collections::hash_map::Keys<'_, String, TileLayer> {
         self.layers.keys()
@@ -637,6 +632,8 @@ pub struct TileLayer {
     requires_reload: bool,
     /// Whether the TileLayer's z_order or position has changed
     properties_changed: bool,
+    /// Whether the layer should be destroyed
+    destroy: bool,
 }
 
 impl TileLayer {
@@ -651,6 +648,7 @@ impl TileLayer {
             should_add: true,
             requires_reload: true,
             properties_changed: true,
+            destroy: false,
         }
     }
 
