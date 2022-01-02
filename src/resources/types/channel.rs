@@ -11,14 +11,31 @@ pub struct Channels {
 }
 
 impl Channels {
-    /// Returns an immutable version of all channels.
-    pub fn get(&self) -> [&SongChannel; 4] {
-        [
-            self.get_pu1(),
-            self.get_pu2(),
-            self.get_wav(),
-            self.get_noi(),
-        ]
+    /// Returns an immutable copy of all channels.
+    pub fn get_all(&self) -> [&SongChannel; 4] {
+        [&self.pu1, &self.pu2, &self.wav, &self.noi]
+    }
+
+    /// Returns an immutable version of a channel at that index.
+    pub fn get(&self, index: usize) -> &SongChannel {
+        match index {
+            0 => &self.pu1,
+            1 => &self.pu2,
+            2 => &self.wav,
+            3 => &self.noi,
+            _ => panic!("Invalid SongChannel Id: Expected 0-3, got {}", index),
+        }
+    }
+
+    /// Returns a mutable version of a channel based on its index.
+    pub fn get_mut(&mut self, index: usize) -> &mut SongChannel {
+        match index {
+            0 => &mut self.pu1,
+            1 => &mut self.pu2,
+            2 => &mut self.wav,
+            3 => &mut self.noi,
+            _ => panic!("Invalid SongChannel Id: Expected 0-3, got {}", index),
+        }
     }
 
     /// Immutably returns pulse channel 1.
@@ -39,17 +56,6 @@ impl Channels {
     /// Immutably returns noi.
     pub fn get_noi(&self) -> &SongChannel {
         &self.noi
-    }
-
-    /// Returns a mutable version of a channel based on its index.
-    pub fn get_mut(&mut self, index: usize) -> &mut SongChannel {
-        match index {
-            0 => &mut self.pu1,
-            1 => &mut self.pu2,
-            2 => &mut self.wav,
-            3 => &mut self.noi,
-            _ => panic!("Invalid SongChannel Id: Expected 0-3, got {}", index),
-        }
     }
 }
 

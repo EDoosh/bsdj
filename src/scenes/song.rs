@@ -18,6 +18,7 @@ impl Plugin for SongScene {
                 .with_system(type_chain)
                 .with_system(delete_chain_system)
                 .with_system(bookmark_chain_system)
+                .with_system(open_chain_system)
                 .with_system(draw_screen),
         );
         // app.add_system_set(
@@ -52,11 +53,13 @@ fn handle_scroll(
     let scroll_delta = input.get_scroll_delta();
 
     // Scroll wheel
-    if scroll_delta != 0 {
-        // Control key pressed: Change value of chain
-        if input.exclusively_pressed(&[InputType::Key(KeyCode::LControl)]) {
-            let cursor_pos = input.get_cursor_tile_position();
+    if scroll_delta == 0 {
+        return;
+    }
 
+    // Control key pressed: Change value of chain
+    if input.exclusively_pressed(&[InputType::Key(KeyCode::LControl)]) {
+        if let Some(cursor_pos) = input.get_cursor_tile_position() {
             if let Some((channel_index, chain_y, left)) = hover_on_chain(cursor_pos, cam) {
                 // Get the chain info
                 let channel = channels.get_mut(channel_index as usize);
@@ -71,25 +74,31 @@ fn handle_scroll(
                     new = chain as i32 + change * scroll_delta;
                     new = utils::clamp(0, new, 0x7f)
                 }
+
                 channel.set_chain(chain_y, new as u8);
             }
-        } else {
-            // Subtract so scrolling down causes cam to increase
-            let new_cam = cam as isize - scroll_delta as isize;
-            song_cursor.set_cam(new_cam);
         }
+    } else {
+        // Subtract so scrolling down causes cam to increase
+        let new_cam = cam as isize - scroll_delta as isize;
+        song_cursor.set_cam(new_cam);
     }
 }
 
-fn move_cursor(input: Res<InputRes>, mut song_cursor: ResMut<song_cursor::SongCursor>) {
+fn move_cursor(
+    input: Res<InputRes>,
+    mut song_cursor: ResMut<song_cursor::SongCursor>,
+    channels: Res<types::channel::Channels>,
+    mut edited_chain: ResMut<edited_chain::EditedChain>,
+) {
     let cam = song_cursor.get_cam();
 
     if input.just_pressed(&InputType::Mouse(MouseButton::Left)) {
-        let cursor_pos = input.get_cursor_tile_position();
-
-        if let Some((channel_index, chain_y, _)) = hover_on_chain(cursor_pos, cam) {
-            song_cursor.set_x(channel_index as isize);
-            song_cursor.set_y(chain_y as isize);
+        if let Some(cursor_pos) = input.get_cursor_tile_position() {
+            if let Some((channel_index, chain_y, _)) = hover_on_chain(cursor_pos, cam) {
+                song_cursor.set_x(channel_index as isize);
+                song_cursor.set_y(chain_y as isize);
+            }
         }
     }
 
@@ -104,6 +113,13 @@ fn move_cursor(input: Res<InputRes>, mut song_cursor: ResMut<song_cursor::SongCu
             }
         }
     }
+
+    let channel = channels.get(song_cursor.get_x() as usize);
+    // If a chain exists at the new cursor location, set the currently edited chain to that.
+    // Else, leave it at what it was before.
+    if let Some(chain) = channel.get_chain(song_cursor.get_y()) {
+        edited_chain.0 = chain;
+    }
 }
 
 fn type_chain(
@@ -114,6 +130,7 @@ fn type_chain(
     for key in InputType::hex_keycodes() {
         if input.just_pressed(&key) {
             let (cursor_x, cursor_y) = song_cursor.get_pos();
+
             let channel = channels.get_mut(cursor_x as usize);
             let mut chain = channel.get_chain(cursor_y).unwrap_or(0);
 
@@ -149,11 +166,12 @@ fn delete_chain_system(
     // If the middle mouse button is clicked, delete the chain
     // where the mousecursor is hovering.
     if input.just_pressed(&InputType::Mouse(MouseButton::Middle)) {
-        let cursor_pos = input.get_cursor_tile_position();
-        let cam = song_cursor.get_cam();
+        if let Some(cursor_pos) = input.get_cursor_tile_position() {
+            let cam = song_cursor.get_cam();
 
-        if let Some((channel_index, chain_y, _)) = hover_on_chain(cursor_pos, cam) {
-            delete_chain(channel_index, chain_y, &mut channels);
+            if let Some((channel_index, chain_y, _)) = hover_on_chain(cursor_pos, cam) {
+                delete_chain(channel_index, chain_y, &mut channels);
+            }
         }
     }
 }
@@ -183,6 +201,7 @@ fn bookmark_chain_system(
     for key in [InputType::Key(KeyCode::M)] {
         if input.just_pressed(&key) {
             let (cursor_x, cursor_y) = song_cursor.get_pos();
+
             if let Err(e) = bookmark_chain(cursor_x as usize, cursor_y, &mut channels) {
                 headtext_writer.send(HeadingTextEvent(e.to_string()));
             }
@@ -192,12 +211,14 @@ fn bookmark_chain_system(
     // Bookmark the tile the mousecursor is hovering over if the
     // right mouse button is clicked.
     if input.just_pressed(&InputType::Mouse(MouseButton::Right)) {
-        let cursor_pos = input.get_cursor_tile_position();
-        let cam = song_cursor.get_cam();
+        if let Some(cursor_pos) = input.get_cursor_tile_position() {
+            let cam = song_cursor.get_cam();
+            if let Some((channel_index, chain_y, _)) = hover_on_chain(cursor_pos, cam) {
+                let err = bookmark_chain(channel_index, chain_y, &mut channels);
 
-        if let Some((channel_index, chain_y, _)) = hover_on_chain(cursor_pos, cam) {
-            if let Err(e) = bookmark_chain(channel_index, chain_y, &mut channels) {
-                headtext_writer.send(HeadingTextEvent(e.to_string()));
+                if let Err(e) = err {
+                    headtext_writer.send(HeadingTextEvent(e.to_string()));
+                }
             }
         }
     }
@@ -211,6 +232,34 @@ fn bookmark_chain(
 ) -> Result<bool, &str> {
     let channel = channels.get_mut(channel_index as usize);
     channel.toggle_bookmark(chain_y)
+}
+
+/// If a set chain is double-clicked
+/// then open the chain screen on that value.
+fn open_chain_system(
+    input: Res<InputRes>,
+    song_cursor: Res<song_cursor::SongCursor>,
+    mut channels: ResMut<types::channel::Channels>,
+    mut scene: ResMut<State<states::States>>,
+) {
+    // Move to the chain screen if an active cell is double-clicked.
+    if !input.double_click() {
+        return;
+    }
+
+    if let Some(cursor_pos) = input.get_cursor_tile_position() {
+        let cam = song_cursor.get_cam();
+
+        if let Some((channel_index, chain_y, _)) = hover_on_chain(cursor_pos, cam) {
+            let channel = channels.get_mut(channel_index as usize);
+            let chain = channel.get_chain(chain_y);
+
+            // Only move if the clicked chain has contents
+            if chain.is_some() {
+                scene.overwrite_replace(states::States::Chain).unwrap();
+            }
+        }
+    }
 }
 
 /// Determines where the user cursor is on a chain.
@@ -255,7 +304,7 @@ fn draw_screen(
             .unwrap();
 
         // For each channel column
-        for (i, channel) in channels.get().iter().enumerate() {
+        for (i, channel) in channels.get_all().iter().enumerate() {
             // Default text and color
             let mut text = "--".to_string();
             let mut color = colors::Colors::Background;

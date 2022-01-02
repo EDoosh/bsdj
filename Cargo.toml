@@ -6,11 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# input_mapper = { path = "./crates/input_mapper", version = "0.1.0" }
 image = "*"
-bevy = { path = "../bevy-main", version = "0.5.0" }
 wgpu = "*"
 # bevy-inspector-egui = "*"
 thiserror = "*"
+
+[dependencies.bevy]
+path = "../bevy-main"
+version = "0.5.0"
+default-features = false
+features = ["wayland", "dynamic", "render"]
 
 [profile.dev]
 opt-level = 2

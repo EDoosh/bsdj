@@ -20,9 +20,13 @@ impl LayerHandler {
         }
     }
 
-    /// Returns a weak reference to the tile renderer
+    /// Returns a reference to the tile renderer
     pub fn get_renderer(&self) -> &TileRenderer {
         &self.renderer
+    }
+    /// Returns a mutable reference to the tile renderer
+    pub fn get_renderer_mut(&mut self) -> &mut TileRenderer {
+        &mut self.renderer
     }
 
     /// Creates a new Layer.

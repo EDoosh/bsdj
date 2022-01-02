@@ -45,10 +45,6 @@ impl Plugin for TileRenderPlugin {
 
 // endregion:   TileRenderPlugin
 
-// region:      Error
-
-// endregion:   Error
-
 /// Indicates this is the TileRenderer sprite
 #[derive(Default, Debug, PartialEq, Eq, Hash, Copy, Clone, Component)]
 pub struct TileRendererSprite;
@@ -128,22 +124,23 @@ fn reload_map(
         let renderer = lh.get_renderer().clone();
         let layer = lh.get_layer_mut(&map.title).unwrap();
 
-        if layer.requires_reload {
-            commands.entity(entity).despawn();
+        if layer.requires_reload || renderer.reload_required() {
+            // commands.entity(entity).despawn();
 
             if let Some(texture) = textures.get_mut(tex_handle) {
                 *texture = layer.as_image(&renderer);
             }
 
             layer.requires_reload = false;
-            layer.should_add = true;
+            // layer.should_add = true;
         }
     }
+
+    lh.get_renderer_mut().unset_require_reload();
 }
 
 /// Check if a components property's changed and update them.
 fn reload_map_properties(
-    mut commands: Commands,
     mut maps: Query<(&mut Transform, &TileLayerSprite)>,
     mut lh: ResMut<LayerHandler>,
 ) {

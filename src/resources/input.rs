@@ -7,6 +7,11 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+/// The number of frames between a left click being released and repressed
+/// for it to be considered a double-click. By default, this program runs
+/// at 60fps.
+pub const DOUBLE_CLICK_FRAME_COUNT: u64 = 30;
+
 pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
@@ -86,6 +91,12 @@ pub struct InputRes {
     cursor_position: (i32, i32),
     /// Scroll delta
     scroll_delta: f32,
+
+    /// The time the last click was released.
+    last_click_release: Option<u64>,
+    /// The last time the cursor was moved.
+    last_cursor_move: Option<u64>,
+
     /// The delay between a key initially being pressed and it repeating.
     /// A value of None means no repeat.
     key_delay: Option<u64>,
@@ -101,9 +112,16 @@ impl InputRes {
             key_history: utils::SizedHeadedArray::new(),
             cursor_position: (0, 0),
             scroll_delta: 0.,
+            last_click_release: None,
+            last_cursor_move: None,
             key_delay: Some(7),
             key_repeat: 3,
         }
+    }
+
+    /// Next frame reset.
+    pub fn next_frame(&mut self) {
+        self.current_time += 1;
     }
 
     /// Gets the current time
@@ -112,13 +130,27 @@ impl InputRes {
     }
 
     /// Returns the current cursor position on screen.
-    pub fn get_cursor_position(&self) -> (i32, i32) {
-        self.cursor_position
+    ///
+    /// Returns None in the event the cursor is off-screen.
+    pub fn get_cursor_position(&self) -> Option<(i32, i32)> {
+        // Check if within bounds of the screen.
+        if self.cursor_position.0 < 0
+            || self.cursor_position.0 >= 160
+            || self.cursor_position.1 < 0
+            || self.cursor_position.1 >= 144
+        {
+            Some(self.cursor_position)
+        } else {
+            None
+        }
     }
 
     /// Returns the current tile the cursor is hovering over.
-    pub fn get_cursor_tile_position(&self) -> (i32, i32) {
-        (self.cursor_position.0 / 8, self.cursor_position.1 / 8)
+    ///
+    /// Returns None in the event the cursor is off-screen.
+    pub fn get_cursor_tile_position(&self) -> Option<(i32, i32)> {
+        let cursor_pos = self.get_cursor_position()?;
+        Some((cursor_pos.0 / 8, cursor_pos.1 / 8))
     }
 
     /// Returns the current scroll delta.
@@ -189,6 +221,22 @@ impl InputRes {
             false
         }
     }
+
+    /// Check if a double click has occured this frame.
+    pub fn double_click(&self) -> bool {
+        // Clicked within 30 frames of releasing and DID NOT MOVE THE CURSOR.
+        let current_click_time = self
+            .pressed_inputs
+            .get(&InputType::Mouse(MouseButton::Left));
+
+        if let Some(current_click_time) = current_click_time {
+            if let Some(last_click_release_time) = self.last_click_release {
+                return *current_click_time <= last_click_release_time + DOUBLE_CLICK_FRAME_COUNT;
+            }
+        }
+
+        false
+    }
 }
 
 fn update_inputs(
@@ -198,7 +246,48 @@ fn update_inputs(
     mut mouse: EventReader<MouseButtonInput>,
     mut wheel: EventReader<MouseWheel>,
 ) {
-    input.current_time += 1;
+    input.next_frame();
+
+    // https://bevy-cheatbook.github.io/cookbook/cursor2world.html
+    // get the primary window
+    let wnd = wnds.get_primary().unwrap();
+
+    // check if the cursor is in the primary window
+    if let Some(cursor_pos) = wnd.cursor_position() {
+        // NOTE: This works for when the user can manually resize the window,
+        // where the game screen runs in letterboxed mode
+
+        // // The window's width and height as a ratio of the
+        // // size of the game to the width/height.
+        // let win_width_ratio = wnd.width() / 160.;
+        // let win_height_ratio = wnd.height() / 144.;
+
+        // // The size of the game relative to its default size (144 x 160)
+        // let game_ratio = f32::min(win_width_ratio, win_height_ratio);
+
+        // // The distance from the edge of the screen that the game is.
+        // let border_x = (wnd.width() - 160. * game_ratio) / 2.;
+        // let border_y = (wnd.height() - 144. * game_ratio) / 2.;
+
+        // let cursor_x = ((cursor_pos.x - border_x) / game_ratio) as i32;
+        // let cursor_y = ((cursor_pos.y - border_y) / game_ratio) as i32;
+
+        let cursor_x = cursor_pos.x as i32;
+        let cursor_y = cursor_pos.y as i32;
+
+        // The Y-value does not conform to standard computer-based positioning.
+        // Adjust it so it is.
+        // 143 is the correct value so the top is 0 and bottom is 143. Not 144.
+        let cursor_y = -cursor_y + 143;
+
+        let new_cursor_pos = (cursor_x, cursor_y);
+
+        if new_cursor_pos != input.cursor_position {
+            input.last_cursor_move = Some(input.current_time)
+        }
+
+        input.cursor_position = new_cursor_pos;
+    }
 
     // For each keyboard event (releases or presses)
     for key in keyboard.iter() {
@@ -215,9 +304,13 @@ fn update_inputs(
     // For each mouse button event (releases or presses)
     for btn in mouse.iter() {
         if btn.state.is_pressed() {
-            input.press_key(InputType::Mouse(btn.button))
+            input.press_key(InputType::Mouse(btn.button));
         } else {
-            input.release_key(InputType::Mouse(btn.button))
+            input.release_key(InputType::Mouse(btn.button));
+
+            if btn.button == MouseButton::Left {
+                input.last_click_release = Some(input.current_time);
+            }
         }
     }
 
@@ -228,20 +321,5 @@ fn update_inputs(
     // Note: Wheel is empty if there is no change in scroll.
     for whl in wheel.iter() {
         input.scroll_delta += whl.y;
-    }
-
-    // https://bevy-cheatbook.github.io/cookbook/cursor2world.html
-    // get the primary window
-    let wnd = wnds.get_primary().unwrap();
-
-    // check if the cursor is in the primary window
-    if let Some(cursor_pos) = wnd.cursor_position() {
-        let cursor_x = (cursor_pos.x / (wnd.width() / 160.)) as i32;
-        let cursor_y = (cursor_pos.y / (wnd.height() / 144.)) as i32;
-        // The Y-value does not conform to standard computer-based positioning.
-        // Adjust it so it is. Yes 143 is the correct value so the top is 0 and bottom is 143.
-        let cursor_y = -cursor_y + 143;
-
-        input.cursor_position = (cursor_x, cursor_y);
     }
 }

@@ -16,7 +16,7 @@ pub struct TileRenderer {
     /// Each ColorSet held by it is mapped to a Color ID, referred to by the Tile struct.
     colors: ColorHandler,
     /// Whether all layers should reload
-    require_reload: bool,
+    requires_reload: bool,
 }
 
 impl TileRenderer {
@@ -26,13 +26,18 @@ impl TileRenderer {
             clusters: HashMap::new(),
             tile_sprites: TileSpriteHandler::new(tile_width, tile_height),
             colors: ColorHandler::default(),
-            require_reload: true,
+            requires_reload: true,
         }
     }
 
-    /// Sets a reload to be required on all layers
-    pub fn require_reload(&mut self) {
-        self.require_reload = true;
+    /// Gets whether a reload is required on all layers.
+    pub fn reload_required(&self) -> bool {
+        self.requires_reload
+    }
+
+    /// Unsets whether a reload is required.
+    pub fn unset_require_reload(&mut self) {
+        self.requires_reload = false
     }
 
     /// Add a new ColorSet with a designated Color ID.
@@ -43,7 +48,7 @@ impl TileRenderer {
     pub fn add_colorset(&mut self, color_id: &ColorIdRef, colorset: ColorSet) {
         let overwrote_color = self.colors.add_colorset(color_id.to_string(), colorset);
         if overwrote_color {
-            self.require_reload();
+            self.requires_reload = true;
         }
     }
 
@@ -83,7 +88,7 @@ impl TileRenderer {
             .add_tilesprite(tile_id.to_string(), tilesprite)?;
 
         if overwrote_sprite {
-            self.require_reload()
+            self.requires_reload = true;
         }
         Ok(())
     }
@@ -133,7 +138,7 @@ impl TileRenderer {
         let cluster_changed = self.clusters.insert(cluster_id, cluster).is_some();
 
         if cluster_changed {
-            self.require_reload()
+            self.requires_reload = true;
         }
     }
 
