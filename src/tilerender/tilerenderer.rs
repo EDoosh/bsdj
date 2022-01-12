@@ -115,7 +115,7 @@ impl TileRenderer {
 
     /// Returns an iterable of Tile IDs
     pub fn get_all_tile_ids(&self) -> &Vec<TileId> {
-        &self.tile_sprites.get_all_tile_ids()
+        self.tile_sprites.get_all_tile_ids()
     }
 
     /// Returns true if the Tile ID exists.

@@ -1,6 +1,6 @@
-use super::*;
-use bevy::prelude::Color;
+use crate::tilerender::{ColorId, ColorSet, TileRenderer, TileRendererError};
 use image::Rgba;
+use std::collections::HashMap;
 use std::fs;
 
 const FIVE_RATIO: f64 = 255. / 31.;

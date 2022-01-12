@@ -9,14 +9,16 @@ edition = "2021"
 # input_mapper = { path = "./crates/input_mapper", version = "0.1.0" }
 image = "*"
 wgpu = "*"
-# bevy-inspector-egui = "*"
 thiserror = "*"
+console_error_panic_hook = "0.1"
 
 [dependencies.bevy]
-path = "../bevy-main"
-version = "0.5.0"
+version = "0.6.0"
 default-features = false
-features = ["wayland", "dynamic", "render"]
+features = ["wayland", "render"]
+
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
 
 [profile.dev]
 opt-level = 2

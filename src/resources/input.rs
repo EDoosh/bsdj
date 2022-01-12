@@ -139,9 +139,9 @@ impl InputRes {
             || self.cursor_position.1 < 0
             || self.cursor_position.1 >= 144
         {
-            Some(self.cursor_position)
-        } else {
             None
+        } else {
+            Some(self.cursor_position)
         }
     }
 

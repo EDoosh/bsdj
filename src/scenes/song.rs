@@ -1,18 +1,16 @@
-use super::*;
 use crate::events::HeadingTextEvent;
 use crate::resources::{input::*, *};
 use crate::states;
 use crate::tilerender::*;
-use crate::utils;
 use bevy::prelude::*;
 
 pub struct SongScene;
 
 impl Plugin for SongScene {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(states::States::Song).with_system(enter_scene));
         app.add_system_set(
             SystemSet::on_update(states::States::Song)
+                .with_system(enter_scene)
                 .with_system(handle_scroll)
                 .with_system(move_cursor)
                 .with_system(type_chain)
@@ -27,7 +25,14 @@ impl Plugin for SongScene {
     }
 }
 
-fn enter_scene(mut lh: ResMut<LayerHandler>) {
+fn enter_scene(mut lh: ResMut<LayerHandler>, mut load_scene: ResMut<states::LoadState>) {
+    // Dont try enter the scene if the scene should not be loaded.
+    if !load_scene.0 {
+        return;
+    }
+    // Make sure not to reload next scene.
+    load_scene.0 = false;
+
     lh.clear_layer("map", "space", colors::Colors::Background)
         .unwrap();
     lh.set_tiles_string("map", 0, 0, "song", colors::Colors::Background)
@@ -72,7 +77,7 @@ fn handle_scroll(
                 let mut new = 0;
                 if let Some(chain) = current {
                     new = chain as i32 + change * scroll_delta;
-                    new = utils::clamp(0, new, 0x7f)
+                    new = new.clamp(0x00, 0x7f)
                 }
 
                 channel.set_chain(chain_y, new as u8);
@@ -240,7 +245,7 @@ fn open_chain_system(
     input: Res<InputRes>,
     song_cursor: Res<song_cursor::SongCursor>,
     mut channels: ResMut<types::channel::Channels>,
-    mut scene: ResMut<State<states::States>>,
+    mut state: ResMut<states::NextState>,
 ) {
     // Move to the chain screen if an active cell is double-clicked.
     if !input.double_click() {
@@ -256,7 +261,7 @@ fn open_chain_system(
 
             // Only move if the clicked chain has contents
             if chain.is_some() {
-                scene.overwrite_replace(states::States::Chain).unwrap();
+                state.0 = Some((1, 1))
             }
         }
     }

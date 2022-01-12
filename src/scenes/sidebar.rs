@@ -1,5 +1,4 @@
-use super::*;
-use crate::resources::song_cursor::*;
+use crate::resources::*;
 use crate::states;
 use crate::tilerender::*;
 use bevy::prelude::*;
@@ -39,7 +38,11 @@ fn enter_scene(mut lh: ResMut<LayerHandler>) {
         .unwrap();
 }
 
-fn draw_screen(song_cursor: Res<SongCursor>, mut lh: ResMut<LayerHandler>) {
+fn draw_screen(
+    song_cursor: Res<song_cursor::SongCursor>,
+    chain_cursor: Res<chain_cursor::ChainCursor>,
+    mut lh: ResMut<LayerHandler>,
+) {
     lh.set_tiles_string(
         "ui",
         17,
@@ -51,6 +54,15 @@ fn draw_screen(song_cursor: Res<SongCursor>, mut lh: ResMut<LayerHandler>) {
             3 => "noi",
             _ => panic!("Invalid Song Cursor X: {}", song_cursor.get_x()),
         },
+        colors::Colors::Highlight,
+    )
+    .unwrap();
+
+    lh.set_tiles_string(
+        "ui",
+        17,
+        2,
+        &format!("cp{:X}", chain_cursor.get_y()),
         colors::Colors::Highlight,
     )
     .unwrap();

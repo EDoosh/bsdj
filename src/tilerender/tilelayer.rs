@@ -1,5 +1,4 @@
-use super::*;
-use bevy::prelude::*;
+use crate::tilerender::*;
 use image::{GenericImage, RgbaImage};
 use wgpu::{Extent3d, TextureDimension, TextureFormat};
 

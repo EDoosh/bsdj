@@ -1,6 +1,5 @@
-use super::*;
 use crate::resources::{edited_instrument::EditedInstrument, input::*, nav_cursor::NavCursor};
-use crate::states::States;
+use crate::states::*;
 use crate::tilerender::*;
 use bevy::prelude::*;
 
@@ -8,8 +7,9 @@ pub struct NavBarPlugin;
 
 impl Plugin for NavBarPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(switch_scene);
+        app.add_system(input_switch_scene);
         app.add_system(draw_screen);
+        app.add_system_to_stage(CoreStage::PostUpdate, switch_scene);
         // app.add_system_set(SystemSet::on_enter(States::Song).with_system(enter_scene));
         // app.add_system_set(
         //     SystemSet::on_update(States::Song)
@@ -23,10 +23,13 @@ impl Plugin for NavBarPlugin {
 }
 
 pub fn get_navbar_order(editing_instrument: &EditedInstrument) -> [[States; 5]; 3] {
+    // Unless you want to manually change all references to
+    // `state::NextState`, I would not recommend changing this.
+    // You would also need to change NavCursor's min and max values.
     let mut structure = [
         [
             States::Project,
-            States::Project,
+            States::File,
             States::Wave,
             States::Synth,
             States::Table,
@@ -39,7 +42,7 @@ pub fn get_navbar_order(editing_instrument: &EditedInstrument) -> [[States; 5]; 
             States::Table,
         ],
         [
-            States::Groove,
+            States::Help,
             States::Groove,
             States::Groove,
             States::Groove,
@@ -55,12 +58,33 @@ pub fn get_navbar_order(editing_instrument: &EditedInstrument) -> [[States; 5]; 
     structure
 }
 
-fn enter_scene(mut lh: ResMut<LayerHandler>) {}
-
+/// Runs as part of PostUpdate so any scene changes in Update are registered
+/// before the next frame begins.
+// Allow so switching the state and not handling the error doesn't warn us.
+#[allow(unused_must_use)]
 fn switch_scene(
-    input: Res<InputRes>,
+    mut new_state_pos: ResMut<NextState>,
     mut state: ResMut<State<States>>,
+    mut load_scene: ResMut<LoadState>,
     mut nav_cursor: ResMut<NavCursor>,
+    instrument: Res<EditedInstrument>,
+) {
+    // Take so next time this is called it doesn't try to
+    // reload the same state unless it was actually set.
+    if let Some(new_state_pos) = new_state_pos.0.take() {
+        let structure = get_navbar_order(&*instrument);
+        let new_state = structure[new_state_pos.1 as usize][new_state_pos.0 as usize];
+
+        state.overwrite_replace(new_state);
+        load_scene.0 = true;
+        nav_cursor.set_x(new_state_pos.0 as isize);
+        nav_cursor.set_y(new_state_pos.1 as isize);
+    }
+}
+
+fn input_switch_scene(
+    input: Res<InputRes>,
+    mut state: ResMut<NextState>,
     instrument: Res<EditedInstrument>,
 ) {
     if !input.just_pressed(&InputType::Mouse(MouseButton::Left)) {
@@ -76,14 +100,7 @@ fn switch_scene(
 
         // Clicked within the navbar.
         if relative_cursor_x >= 0 && relative_cursor_y >= 0 {
-            nav_cursor.set_x(relative_cursor_x);
-            nav_cursor.set_y(relative_cursor_y);
-
-            state
-                .overwrite_replace(
-                    structure[relative_cursor_y as usize][relative_cursor_x as usize],
-                )
-                .unwrap()
+            state.0 = Some((relative_cursor_x as u8, relative_cursor_y as u8));
         }
     }
 }
@@ -115,11 +132,13 @@ fn draw_screen(
                 color = colors::Colors::Cursor;
             }
 
+            let text = tile.abbr();
+
             lh.set_tiles_string(
                 "ui",
                 20 - column_count + tile_col_idx,
                 18 - row_count + tile_row_idx,
-                tile.abbr(),
+                text,
                 color,
             )
             .unwrap();

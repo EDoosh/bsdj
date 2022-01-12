@@ -1,5 +1,4 @@
 use crate::tilerender::*;
-use crate::utils;
 use bevy::prelude::*;
 
 // Pixels per second
@@ -87,7 +86,7 @@ fn move_text(mut res: ResMut<HeadingTextResource>, mut lh: ResMut<LayerHandler>,
 
     let x_shift = SPEED * (time_since_start - FREEZE_TIME_START);
     let max_x_shift = 8. * (res.length as f32 - 20.);
-    let clamped_x_shift = utils::clampf(0., x_shift, max_x_shift);
+    let clamped_x_shift = x_shift.clamp(0., max_x_shift);
 
     layer.set_position(Vec2::new(-clamped_x_shift, 0.));
 }

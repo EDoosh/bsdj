@@ -5,10 +5,10 @@ pub trait Position {
     const MAX_Y: isize;
 
     fn clamp_x(&mut self, x: isize) -> isize {
-        std::cmp::max(Self::MIN_X, std::cmp::min(Self::MAX_X, x))
+        x.clamp(Self::MIN_X, Self::MAX_X)
     }
 
     fn clamp_y(&mut self, y: isize) -> isize {
-        std::cmp::max(Self::MIN_Y, std::cmp::min(Self::MAX_Y, y))
+        y.clamp(Self::MIN_Y, Self::MAX_Y)
     }
 }

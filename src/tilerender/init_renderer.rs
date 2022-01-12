@@ -3,7 +3,7 @@ use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 
 const FONTS: &[&str] = &["lowr"];
 const GLYPHS: &[&str] = &["dflt"];
-const COLORSETS: &[&str] = &["cute"];
+const COLORSETS: &[&str] = &["ami ", "crt ", "cute", "gray", "red ", "rgb "];
 
 pub struct InitRendererPlugin;
 

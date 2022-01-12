@@ -115,12 +115,11 @@ fn load_map(
 
 /// Check if a tilemap has changed, and if so, set the images on it.
 fn reload_map(
-    mut commands: Commands,
-    maps: Query<(Entity, &Handle<Image>, &TileLayerSprite)>,
+    maps: Query<(&Handle<Image>, &TileLayerSprite)>,
     mut textures: ResMut<Assets<Image>>,
     mut lh: ResMut<LayerHandler>,
 ) {
-    for (entity, tex_handle, map) in maps.iter() {
+    for (tex_handle, map) in maps.iter() {
         let renderer = lh.get_renderer().clone();
         let layer = lh.get_layer_mut(&map.title).unwrap();
 

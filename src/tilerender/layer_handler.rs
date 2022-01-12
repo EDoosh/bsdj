@@ -16,7 +16,7 @@ impl LayerHandler {
             layers: HashMap::default(),
             active_font: "lowr".to_string(),
             active_glyph: "dflt".to_string(),
-            active_colorset: "cute".to_string(),
+            active_colorset: "gray".to_string(),
         }
     }
 
@@ -54,6 +54,10 @@ impl LayerHandler {
 
     /// Returns the name of a tile.
     fn get_tile_name(&self, tile_id: &TileIdRef) -> Result<String, String> {
+        // Remap some characters to others.
+        let remap = HashMap::from([(" ", "space")]);
+        let tile_id = remap.get(tile_id).unwrap_or(&tile_id);
+
         let fontname = format!("{}_{}", &self.active_font, tile_id);
         let has_font = self.renderer.has_tilesprite(&fontname);
         if has_font {
@@ -101,6 +105,8 @@ impl LayerHandler {
     }
 
     /// Sets a tile at a given index, where the font or glyph and the colorset prefixes will be appended.
+    ///
+    /// Errors if the tilename, colorset, or layer provided do not exist.
     pub fn set_tile(
         &mut self,
         layer_id: &str,

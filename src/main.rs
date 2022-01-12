@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::{prelude::*, window::WindowMode};
 // use bevy_inspector_egui::WorldInspectorPlugin;
 
@@ -16,6 +18,10 @@ struct GameStage;
 
 /// Create the app and open the program.
 fn main() {
+    // When building for WASM, print panics to the browser console
+    #[cfg(target_arch = "wasm32")]
+    console_error_panic_hook::set_once();
+
     let mut app = App::new();
 
     // Set the properties of the window itself
@@ -47,6 +53,10 @@ fn main() {
 
     // Set the current game state to be the song screen.
     app.add_state(states::States::Song);
+    // Add a resource indicating if the scene should be reloaded.
+    app.insert_resource(states::LoadState(true));
+    app.insert_resource(states::NextState(None));
+    app.insert_resource(states::CurrentHelpScreen(states::HelpScreen::Home));
 
     // RUN THE PROGRAM
     app.run();

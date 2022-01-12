@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub mod chain_cursor;
 pub mod edited_chain;
 pub mod edited_instrument;
 pub mod input;
@@ -15,6 +16,7 @@ impl Plugin for ResourcePlugin {
         app.add_plugin(input::InputPlugin);
         app.insert_resource(song_cursor::SongCursor::new());
         app.insert_resource(nav_cursor::NavCursor::new());
+        app.insert_resource(chain_cursor::ChainCursor::new());
         app.insert_resource(edited_instrument::EditedInstrument(0));
         app.insert_resource(edited_chain::EditedChain(0));
     }

@@ -1,3 +1,17 @@
+/// The navbar position to go to.
+/// None if there is no new scene to transition to.
+pub struct NextState(pub Option<(u8, u8)>);
+
+/// Used to indicate whether the scene should be loaded (or reloaded)
+/// Reloading an already-loaded state with `State.overwrite_replace(new_state).unwrap()`
+/// will error with the reason that it's already loaded, so our
+/// workaround is to check at the beginning of each frame whether this value
+/// is set or not and re-init accordingly.
+pub struct LoadState(pub bool);
+
+/// The current HelpScreen the user is on.
+pub struct CurrentHelpScreen(pub HelpScreen);
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum States {
     Project,
@@ -13,7 +27,7 @@ pub enum States {
     Table,
     Groove,
     File,
-    Help(HelpScreen),
+    Help,
 }
 
 impl States {
@@ -33,14 +47,14 @@ impl States {
             States::Table => "t",
             States::Groove => "g",
             States::File => "f",
-            States::Help(_) => "h",
+            States::Help => "h",
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum HelpScreen {
-    Main,
+    Home,
     Song,
     Live,
     Chain,
