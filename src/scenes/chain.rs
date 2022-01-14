@@ -26,7 +26,7 @@ impl Plugin for ChainScene {
 
 fn enter_scene(
     mut lh: ResMut<LayerHandler>,
-    edited_chain: Res<edited_chain::EditedChain>,
+    edited_chain: Res<edited::EditedChain>,
     mut load_scene: ResMut<states::LoadState>,
 ) {
     // Dont try enter the scene if the scene should not be loaded.
@@ -71,7 +71,7 @@ fn enter_scene(
 
 fn handle_scroll(
     input: Res<InputRes>,
-    edited_chain: Res<edited_chain::EditedChain>,
+    edited_chain: Res<edited::EditedChain>,
     mut chains: ResMut<types::chain::Chains>,
 ) {
     let scroll_delta = input.get_scroll_delta();
@@ -138,9 +138,9 @@ fn hover(cursor_pos: (i32, i32)) -> Option<(bool, u8, bool)> {
 
 fn draw_screen(
     mut lh: ResMut<LayerHandler>,
-    chain_cursor: Res<chain_cursor::ChainCursor>,
+    chain_cursor: Res<cursors::ChainCursor>,
     chains: Res<types::Chains>,
-    edited_chain: Res<edited_chain::EditedChain>,
+    edited_chain: Res<edited::EditedChain>,
 ) {
     let chain = chains.get(edited_chain.0 as usize);
 

@@ -24,7 +24,6 @@ fn resize_window(mut windows: ResMut<Windows>, inputs: Res<InputRes>) {
             scale -= 1.;
         }
 
-        // Above a scale of 4 breaks??
-        window.set_scale_factor_override(Some(scale.clamp(1., 4.)));
+        window.set_scale_factor_override(Some(scale.clamp(1., 8.)));
     }
 }

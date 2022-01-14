@@ -51,7 +51,7 @@ fn enter_scene(mut lh: ResMut<LayerHandler>, mut load_scene: ResMut<states::Load
 
 fn handle_scroll(
     input: Res<InputRes>,
-    mut song_cursor: ResMut<song_cursor::SongCursor>,
+    mut song_cursor: ResMut<cursors::SongCursor>,
     mut channels: ResMut<types::channel::Channels>,
 ) {
     let cam = song_cursor.get_cam();
@@ -92,9 +92,9 @@ fn handle_scroll(
 
 fn move_cursor(
     input: Res<InputRes>,
-    mut song_cursor: ResMut<song_cursor::SongCursor>,
+    mut song_cursor: ResMut<cursors::SongCursor>,
     channels: Res<types::channel::Channels>,
-    mut edited_chain: ResMut<edited_chain::EditedChain>,
+    mut edited_chain: ResMut<edited::EditedChain>,
 ) {
     let cam = song_cursor.get_cam();
 
@@ -129,7 +129,7 @@ fn move_cursor(
 
 fn type_chain(
     input: Res<InputRes>,
-    song_cursor: Res<song_cursor::SongCursor>,
+    song_cursor: Res<cursors::SongCursor>,
     mut channels: ResMut<types::channel::Channels>,
 ) {
     for key in InputType::hex_keycodes() {
@@ -153,7 +153,7 @@ fn type_chain(
 
 fn delete_chain_system(
     input: Res<InputRes>,
-    song_cursor: Res<song_cursor::SongCursor>,
+    song_cursor: Res<cursors::SongCursor>,
     mut channels: ResMut<types::channel::Channels>,
 ) {
     // If the `Delete` or `Backspace` keys are pressed,
@@ -198,7 +198,7 @@ fn delete_chain(channel_index: usize, chain_y: u8, channels: &mut types::channel
 
 fn bookmark_chain_system(
     input: Res<InputRes>,
-    song_cursor: Res<song_cursor::SongCursor>,
+    song_cursor: Res<cursors::SongCursor>,
     mut channels: ResMut<types::channel::Channels>,
     mut headtext_writer: EventWriter<HeadingTextEvent>,
 ) {
@@ -243,7 +243,7 @@ fn bookmark_chain(
 /// then open the chain screen on that value.
 fn open_chain_system(
     input: Res<InputRes>,
-    song_cursor: Res<song_cursor::SongCursor>,
+    song_cursor: Res<cursors::SongCursor>,
     mut channels: ResMut<types::channel::Channels>,
     mut state: ResMut<states::NextState>,
 ) {
@@ -296,7 +296,7 @@ fn hover_on_chain(cursor_pos: (i32, i32), cam: u8) -> Option<(usize, u8, bool)> 
 }
 
 fn draw_screen(
-    song_cursor: Res<song_cursor::SongCursor>,
+    song_cursor: Res<cursors::SongCursor>,
     mut lh: ResMut<LayerHandler>,
     channels: Res<types::channel::Channels>,
 ) {

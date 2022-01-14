@@ -39,8 +39,8 @@ fn enter_scene(mut lh: ResMut<LayerHandler>) {
 }
 
 fn draw_screen(
-    song_cursor: Res<song_cursor::SongCursor>,
-    chain_cursor: Res<chain_cursor::ChainCursor>,
+    song_cursor: Res<cursors::SongCursor>,
+    chain_cursor: Res<cursors::ChainCursor>,
     mut lh: ResMut<LayerHandler>,
 ) {
     lh.set_tiles_string(
