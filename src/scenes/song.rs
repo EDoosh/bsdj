@@ -331,5 +331,3 @@ fn draw_screen(
         }
     }
 }
-
-// fn exit_game(mut commands: Commands) {}

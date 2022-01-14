@@ -1,4 +1,4 @@
-use crate::resources::{input::*, *};
+// use crate::resources::{input::*, *};
 use crate::states;
 use crate::tilerender::*;
 use bevy::prelude::*;
@@ -8,9 +8,7 @@ pub struct SpeechScene;
 impl Plugin for SpeechScene {
     fn build(&self, app: &mut App) {
         app.add_system_set(
-            SystemSet::on_update(states::States::Speech)
-                .with_system(enter_scene)
-                .with_system(draw_screen),
+            SystemSet::on_update(states::States::Speech).with_system(enter_scene), // .with_system(draw_screen),
         );
     }
 }
@@ -41,4 +39,4 @@ fn enter_scene(mut lh: ResMut<LayerHandler>, mut load_scene: ResMut<states::Load
         .unwrap();
 }
 
-fn draw_screen(mut lh: ResMut<LayerHandler>) {}
+// fn draw_screen(mut lh: ResMut<LayerHandler>) {}
