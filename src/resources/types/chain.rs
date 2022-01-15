@@ -39,22 +39,49 @@ impl Default for Chains {
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Chain {
     phrases: [u8; PHRASES_PER_CHAIN],
-    transposes: [u8; 16],
+    transposes: [u8; PHRASES_PER_CHAIN],
 }
 
 impl Chain {
     pub fn new() -> Chain {
         Chain {
             phrases: [EMPTY_PHRASE; PHRASES_PER_CHAIN],
-            transposes: [0x00; 16],
+            transposes: [0x00; PHRASES_PER_CHAIN],
         }
     }
 
     /// Returns a phrase ID at a position in the chain.
     /// Returns None if the phrase at that index is empty or if
-    /// the provided index does not exist.
+    /// the index was out of bounds.
     pub fn get_phrase(&self, index: usize) -> Option<u8> {
         let phrase = self.phrases.get(index);
         phrase.filter(|p| **p != EMPTY_PHRASE).cloned()
+    }
+
+    /// Sets the phrase at a position in the chain.
+    /// Returns a None if the index was out of bounds.
+    pub fn set_phrase(&mut self, index: usize, value: u8) -> Option<()> {
+        *self.phrases.get_mut(index)? = value;
+        Some(())
+    }
+
+    /// Clears the phrase at a position in the chain.
+    /// Returns a None if the index was out of bounds.
+    pub fn clear_phrase(&mut self, index: usize) -> Option<()> {
+        *self.phrases.get_mut(index)? = EMPTY_PHRASE;
+        Some(())
+    }
+
+    /// Returns a transpose amount at a position in the chain.
+    /// Returns a None if the index was out of bounds.
+    pub fn get_transpose(&self, index: usize) -> Option<u8> {
+        self.transposes.get(index).cloned()
+    }
+
+    /// Sets the phrase at a position in the chain.
+    /// Returns a None if the index was out of bounds.
+    pub fn set_transpose(&mut self, index: usize, value: u8) -> Option<()> {
+        *self.transposes.get_mut(index)? = value;
+        Some(())
     }
 }
