@@ -7,8 +7,6 @@ use std::collections::HashMap;
 /// similar to older consoles like the (S)NES and Gameboy (Color).
 #[derive(Clone, Debug)]
 pub struct TileRenderer {
-    /// A map of tiles that are combined into a larger tile.
-    clusters: HashMap<ClusterId, Cluster>,
     /// A struct holding available tile sprites.
     /// Each TileSprite held by it is mapped to a Tile ID, referred to by the Tile struct.
     tile_sprites: TileSpriteHandler,
@@ -23,7 +21,6 @@ impl TileRenderer {
     /// Creates a new TileRenderer. `tile_width` and `tile_height` are the size of the tiles.
     pub fn new(tile_width: usize, tile_height: usize) -> TileRenderer {
         TileRenderer {
-            clusters: HashMap::new(),
             tile_sprites: TileSpriteHandler::new(tile_width, tile_height),
             colors: ColorHandler::default(),
             requires_reload: true,
@@ -132,44 +129,4 @@ impl TileRenderer {
     pub fn get_tile_height(&self) -> usize {
         self.tile_sprites.get_height()
     }
-
-    /// Adds a cluster
-    pub fn add_cluster(&mut self, cluster_id: ClusterId, cluster: Cluster) {
-        let cluster_changed = self.clusters.insert(cluster_id, cluster).is_some();
-
-        if cluster_changed {
-            self.requires_reload = true;
-        }
-    }
-
-    /// Creates and adds a cluster
-    pub fn add_new_cluster(
-        &mut self,
-        cluster_id: &ClusterIdRef,
-        width: usize,
-        height: usize,
-        tiles: &[Tile],
-    ) {
-        assert_eq!(width * height, tiles.len());
-        self.add_cluster(
-            cluster_id.to_string(),
-            Cluster {
-                width,
-                height,
-                tiles: tiles.to_vec(),
-            },
-        )
-    }
-
-    /// Returns a cluster
-    pub fn get_cluster(&self, cluster_id: &ClusterIdRef) -> Result<&Cluster, TileRendererError> {
-        self.clusters
-            .get(cluster_id)
-            .ok_or_else(|| TileRendererError::InvalidClusterId(cluster_id.to_string()))
-    }
-
-    // /// Returns true if the Cluster ID exists.
-    // pub fn has_cluster(&self, cluster_id: &ClusterIdRef) -> bool {
-    //     self.clusters.has_cluster(tile_id)
-    // }
 }

@@ -7,8 +7,6 @@ pub enum TileRendererError {
     InvalidColorId(ColorId),
     #[error("Invalid TileID `{0}` while trying to retrieve TileSprite.")]
     InvalidTileId(TileId),
-    #[error("Invalid Cluster `{0}` while trying to retrieve Cluster.")]
-    InvalidClusterId(ClusterId),
     #[error("Invalid PixelColorID `{0}` while trying to retrieve RGBA color from color palette.")]
     InvalidPixelColorId(PixelColorId),
     #[error(

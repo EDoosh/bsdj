@@ -6,7 +6,6 @@ pub mod init_renderer;
 pub mod parse_colorset;
 pub mod parse_tilesprite;
 
-pub mod cluster;
 pub mod colorset;
 pub mod layer_handler;
 pub mod tilelayer;
@@ -14,7 +13,6 @@ pub mod tilerenderer;
 pub mod tilesprite;
 pub mod tr_error;
 
-pub use cluster::*;
 pub use colors::*;
 pub use colorset::*;
 pub use layer_handler::*;
