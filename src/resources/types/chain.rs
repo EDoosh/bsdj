@@ -10,13 +10,6 @@ pub struct Chains {
 }
 
 impl Chains {
-    /// Construct a new resource holding the chains.
-    pub fn new() -> Chains {
-        Chains {
-            chains: [Chain::new(); CHAIN_COUNT],
-        }
-    }
-
     /// Get a chain by its index.
     pub fn get(&self, index: usize) -> Option<&Chain> {
         self.chains.get(index)
@@ -32,24 +25,19 @@ impl Chains {
 
 impl Default for Chains {
     fn default() -> Self {
-        Chains::new()
+        Chains {
+            chains: [Chain::default(); CHAIN_COUNT],
+        }
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Chain {
     phrases: [u8; PHRASES_PER_CHAIN],
     transposes: [u8; PHRASES_PER_CHAIN],
 }
 
 impl Chain {
-    pub fn new() -> Chain {
-        Chain {
-            phrases: [EMPTY_PHRASE; PHRASES_PER_CHAIN],
-            transposes: [0x00; PHRASES_PER_CHAIN],
-        }
-    }
-
     /// Returns a phrase ID at a position in the chain.
     /// Returns None if the phrase at that index is empty or if
     /// the index was out of bounds.
@@ -83,5 +71,14 @@ impl Chain {
     pub fn set_transpose(&mut self, index: usize, value: u8) -> Option<()> {
         *self.transposes.get_mut(index)? = value;
         Some(())
+    }
+}
+
+impl Default for Chain {
+    fn default() -> Self {
+        Chain {
+            phrases: [EMPTY_PHRASE; PHRASES_PER_CHAIN],
+            transposes: [0x00; PHRASES_PER_CHAIN],
+        }
     }
 }

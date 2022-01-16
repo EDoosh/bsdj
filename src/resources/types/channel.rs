@@ -70,13 +70,6 @@ pub struct SongChannel {
 }
 
 impl SongChannel {
-    pub fn new() -> SongChannel {
-        SongChannel {
-            chains: vec![EMPTY_CHAIN; 0x100],
-            bookmarks: HashSet::new(),
-        }
-    }
-
     /// Gets the value of the chain as a given point.
     pub fn get_chain(&self, index: u8) -> Option<u8> {
         let chain = self.chains[index as usize];
@@ -161,6 +154,9 @@ impl SongChannel {
 
 impl Default for SongChannel {
     fn default() -> Self {
-        SongChannel::new()
+        SongChannel {
+            chains: vec![EMPTY_CHAIN; 0x100],
+            bookmarks: HashSet::new(),
+        }
     }
 }

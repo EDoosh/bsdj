@@ -70,6 +70,12 @@ impl SongCursor {
     pub fn set_cam(&mut self, cam: isize) {
         self.cam = std::cmp::max(0, std::cmp::min(240, cam)) as u8
     }
+
+    // CUSTOM FUNCTIONS
+    /// Returns true if the song cursor is currently in the wave channel.
+    pub fn is_wav(&self) -> bool {
+        self.x == 2
+    }
 }
 
 impl Position for SongCursor {
