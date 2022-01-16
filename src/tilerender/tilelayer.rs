@@ -105,28 +105,6 @@ impl TileLayer {
             .ok_or(TileRendererError::TileNotSet { x, y })
     }
 
-    /// Sets a cluster at a point
-    pub fn set_cluster(
-        &mut self,
-        renderer: &TileRenderer,
-        x: isize,
-        y: isize,
-        cluster: &ClusterIdRef,
-    ) {
-        let cluster = renderer.get_cluster(cluster).unwrap();
-        for tile_x in 0..cluster.width {
-            for tile_y in 0..cluster.height {
-                let tile = &cluster.tiles[tile_y * cluster.width + tile_x];
-                let set_x = tile_x as isize + x;
-                let set_y = tile_y as isize + y;
-                if set_x < 0 || set_y < 0 {
-                    continue;
-                }
-                self.set_tile(set_x as usize, set_y as usize, &tile.id, &tile.color);
-            }
-        }
-    }
-
     /// Clears the layer by setting all tiles to these values.
     pub fn clear_layer(&mut self, tile_id: &TileIdRef, color_id: &ColorIdRef) {
         for x in 0..self.width {

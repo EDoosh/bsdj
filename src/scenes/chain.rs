@@ -24,14 +24,12 @@ impl Plugin for ChainScene {
 fn enter_scene(
     mut lh: ResMut<LayerHandler>,
     edited_chain: Res<edited::EditedChain>,
-    mut load_scene: ResMut<states::LoadState>,
+    load_scene: ResMut<states::LoadState>,
 ) {
     // Dont try enter the scene if the scene should not be loaded.
     if !load_scene.0 {
         return;
     }
-    // Make sure not to reload next scene.
-    load_scene.0 = false;
 
     // Clear the map
     lh.clear_layer("map", "space", Colors::Background).unwrap();

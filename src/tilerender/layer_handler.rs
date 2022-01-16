@@ -4,6 +4,12 @@ use std::collections::HashMap;
 pub struct LayerHandler {
     renderer: TileRenderer,
     layers: HashMap<String, TileLayer>,
+    /// A vec of all font names.
+    pub font_names: Vec<String>,
+    /// A vec of all glyph names.
+    pub glyph_names: Vec<String>,
+    /// A vec of all color names
+    pub color_names: Vec<String>,
     pub active_font: String,
     pub active_glyph: String,
     pub active_colorset: String,
@@ -14,6 +20,9 @@ impl LayerHandler {
         LayerHandler {
             renderer,
             layers: HashMap::default(),
+            font_names: vec![],
+            glyph_names: vec![],
+            color_names: vec![],
             active_font: "lowr".to_string(),
             active_glyph: "dflt".to_string(),
             active_colorset: "gray".to_string(),

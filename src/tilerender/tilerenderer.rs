@@ -1,6 +1,5 @@
 use super::*;
 use image::Rgba;
-use std::collections::HashMap;
 
 /// The TileRenderer component.
 /// Allows rendering of Tiles to the screen in a grid-like fashion,

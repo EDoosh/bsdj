@@ -9,12 +9,12 @@ pub struct InitRendererPlugin;
 
 impl Plugin for InitRendererPlugin {
     fn build(&self, app: &mut App) {
-        let mut tr = TileRenderer::new(8, 8);
-        init_fonts(&mut tr);
-        init_glyphs(&mut tr);
-        init_colorsets(&mut tr);
-
+        let tr = TileRenderer::new(8, 8);
         let mut lh = LayerHandler::new(tr);
+        init_fonts(&mut lh);
+        init_glyphs(&mut lh);
+        init_colorsets(&mut lh);
+
         construct_layers(&mut lh);
         app.insert_resource(lh);
 
@@ -24,24 +24,33 @@ impl Plugin for InitRendererPlugin {
     }
 }
 
-fn init_fonts(tr: &mut TileRenderer) {
+fn init_fonts(lh: &mut LayerHandler) {
     for font in FONTS {
+        let tr = lh.get_renderer_mut();
         let filename = format!("assets/fonts/{}.tilesprite", font);
         parse_tilesprite::TileSpriteParser::parse_and_add(&filename, font, tr).unwrap();
+
+        lh.font_names.push(font.to_string());
     }
 }
 
-fn init_glyphs(tr: &mut TileRenderer) {
+fn init_glyphs(lh: &mut LayerHandler) {
     for glyph in GLYPHS {
+        let tr = lh.get_renderer_mut();
         let filename = format!("assets/glyphs/{}.tilesprite", glyph);
         parse_tilesprite::TileSpriteParser::parse_and_add(&filename, glyph, tr).unwrap();
+
+        lh.glyph_names.push(glyph.to_string());
     }
 }
 
-fn init_colorsets(tr: &mut TileRenderer) {
+fn init_colorsets(lh: &mut LayerHandler) {
     for colorset in COLORSETS {
+        let tr = lh.get_renderer_mut();
         let filename = format!("assets/colorsets/{}.colorset", colorset);
         parse_colorset::ColorSetParser::parse_and_add(&filename, colorset, tr).unwrap();
+
+        lh.color_names.push(colorset.to_string());
     }
 }
 

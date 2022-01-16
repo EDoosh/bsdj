@@ -7,15 +7,16 @@ pub struct SideBarPlugin;
 
 impl Plugin for SideBarPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(states::States::Song).with_system(enter_scene));
-        app.add_system_set(SystemSet::on_update(states::States::Song).with_system(draw_screen));
-        // app.add_system_set(
-        //     SystemSet::on_exit(states::States::Song).with_system(exit_game),
-        // );
+        app.add_system(enter_scene).add_system(draw_screen);
     }
 }
 
-fn enter_scene(mut lh: ResMut<LayerHandler>) {
+fn enter_scene(mut lh: ResMut<LayerHandler>, load_scene: ResMut<states::LoadState>) {
+    // Only reload when it needs to be reloaded (i.e. a screen transition)
+    if !load_scene.0 {
+        return;
+    }
+
     for i in 0..=9 {
         lh.set_tiles(
             "ui",

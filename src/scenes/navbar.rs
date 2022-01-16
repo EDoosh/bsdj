@@ -10,15 +10,6 @@ impl Plugin for NavBarPlugin {
         app.add_system(input_switch_scene);
         app.add_system(draw_screen);
         app.add_system_to_stage(CoreStage::PostUpdate, switch_scene);
-        // app.add_system_set(SystemSet::on_enter(States::Song).with_system(enter_scene));
-        // app.add_system_set(
-        //     SystemSet::on_update(States::Song)
-        //         .with_system(switch_scene)
-        //         .with_system(draw_screen),
-        // );
-        // app.add_system_set(
-        //     SystemSet::on_exit(states::States::Song).with_system(exit_game),
-        // );
     }
 }
 
@@ -69,6 +60,11 @@ fn switch_scene(
     mut nav_cursor: ResMut<NavCursor>,
     instrument: Res<EditedInstrument>,
 ) {
+    // If a new state has been reloaded, reset it.
+    if load_scene.0 {
+        load_scene.0 = false;
+    }
+
     // Take so next time this is called it doesn't try to
     // reload the same state unless it was actually set.
     if let Some(new_state_pos) = new_state_pos.0.take() {
