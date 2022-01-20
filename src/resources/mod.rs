@@ -5,6 +5,8 @@ pub mod edited;
 pub mod input;
 pub mod types;
 
+pub use cursors::Cursor;
+
 pub struct ResourcePlugin;
 
 impl Plugin for ResourcePlugin {

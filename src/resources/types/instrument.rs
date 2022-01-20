@@ -1,5 +1,5 @@
 // 0x00 to 0x40
-const INSTR_COUNT: usize = 0x41;
+pub const INSTR_COUNT: usize = 0x41;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Instruments {
@@ -7,16 +7,18 @@ pub struct Instruments {
 }
 
 impl Instruments {
-    /// Get an instrument by its index.
-    pub fn get(&self, index: usize) -> Option<&Instrument> {
-        self.instrs.get(index)
+    /// Get an instrument by its id.
+    ///
+    /// Returns None if the instrument is out of bounds (not within 0x00-0x40)
+    pub fn get(&self, id: usize) -> Option<&Instrument> {
+        self.instrs.get(id)
     }
 
-    /// Gets a mutable instrument by its index.
+    /// Gets a mutable instrument by its id.
     ///
-    /// Returns None if the specified index does not exist.
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Instrument> {
-        self.instrs.get_mut(index)
+    /// Returns None if the instrument is out of bounds (not within 0x00-0x40)
+    pub fn get_mut(&mut self, id: usize) -> Option<&mut Instrument> {
+        self.instrs.get_mut(id)
     }
 }
 

@@ -1,4 +1,5 @@
 pub trait WrappingAdd {
+    /// Add a signed value to a number, wrapping if it overflowed..
     fn w_add(self, rhs: isize) -> Self;
 }
 

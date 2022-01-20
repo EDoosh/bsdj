@@ -1,6 +1,6 @@
 use super::Command;
+use crate::resources::types::note;
 
-const EMPTY_NOTE: u8 = 0x00;
 const EMPTY_INSTR: u8 = 0xff;
 // 0x00 to 0xfe
 const PHRASE_COUNT: usize = 0xFF;
@@ -36,7 +36,7 @@ impl Default for Phrases {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Phrase {
-    notes: [u8; NOTES_PER_CHAIN],
+    notes: [note::Note; NOTES_PER_CHAIN],
     instrs: [u8; NOTES_PER_CHAIN],
     cmds: [Command; NOTES_PER_CHAIN],
     cmd_vals: [u8; NOTES_PER_CHAIN],
@@ -46,23 +46,26 @@ impl Phrase {
     /// Returns a note at a position in the chain.
     /// Returns None if the note at that index is empty or if
     /// the index was out of bounds.
-    pub fn get_note(&self, index: usize) -> Option<u8> {
-        let note = self.notes.get(index);
-        note.filter(|n| **n != EMPTY_NOTE).cloned()
+    pub fn get_note(&self, index: usize) -> Option<&note::Note> {
+        let note = self.notes.get(index)?;
+        if note.get().is_none() {
+            None
+        } else {
+            Some(note)
+        }
     }
 
     /// Sets the note at a position in the chain.
     /// Returns a None if the index was out of bounds.
     pub fn set_note(&mut self, index: usize, value: u8) -> Option<()> {
-        *self.notes.get_mut(index)? = value;
+        *self.notes.get_mut(index)? = note::Note(value);
         Some(())
     }
 
     /// Clears the note at a position in the chain.
     /// Returns a None if the index was out of bounds.
     pub fn clear_note(&mut self, index: usize) -> Option<()> {
-        *self.notes.get_mut(index)? = EMPTY_NOTE;
-        Some(())
+        self.set_note(index, note::EMPTY_NOTE)
     }
 
     /// Returns an instrument at a position in the chain.
@@ -83,8 +86,7 @@ impl Phrase {
     /// Clears the instrument at a position in the chain.
     /// Returns a None if the index was out of bounds.
     pub fn clear_instr(&mut self, index: usize) -> Option<()> {
-        *self.instrs.get_mut(index)? = EMPTY_INSTR;
-        Some(())
+        self.set_instr(index, EMPTY_INSTR)
     }
 
     /// Returns a command at a position in the chain.
@@ -105,8 +107,7 @@ impl Phrase {
     /// Clears the command at a position in the chain.
     /// Returns a None if the index was out of bounds.
     pub fn clear_cmd(&mut self, index: usize) -> Option<()> {
-        *self.cmds.get_mut(index)? = Command::default();
-        Some(())
+        self.set_cmd(index, Command::default())
     }
 
     /// Returns a command value at a position in the chain.
@@ -126,7 +127,7 @@ impl Phrase {
 impl Default for Phrase {
     fn default() -> Phrase {
         Phrase {
-            notes: [EMPTY_NOTE; NOTES_PER_CHAIN],
+            notes: [note::Note::default(); NOTES_PER_CHAIN],
             instrs: [EMPTY_INSTR; NOTES_PER_CHAIN],
             cmds: [Command::default(); NOTES_PER_CHAIN],
             cmd_vals: [0x00; NOTES_PER_CHAIN],

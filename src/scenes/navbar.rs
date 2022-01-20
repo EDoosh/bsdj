@@ -1,4 +1,8 @@
-use crate::resources::{cursors::NavCursor, edited::EditedInstrument, input::*};
+use crate::resources::{
+    cursors::{Cursor, NavCursor},
+    edited::EditedInstrument,
+    input::*,
+};
 use crate::states::*;
 use crate::tilerender::*;
 use bevy::prelude::*;

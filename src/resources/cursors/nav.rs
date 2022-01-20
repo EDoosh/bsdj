@@ -1,4 +1,4 @@
-use crate::utils::position::Position;
+use super::Cursor;
 
 /// Indicates the position of the cursor on the navbar.
 pub struct NavCursor {
@@ -8,55 +8,43 @@ pub struct NavCursor {
     y: u8,
 }
 
-impl NavCursor {
-    /// Construct a new NavCursor at position 0, 1 (The Song screen)
-    pub fn new() -> NavCursor {
-        NavCursor { x: 0, y: 1 }
-    }
-
-    /// Retrieve the navbar cursor's position as a tuple
-    pub fn get_pos(&self) -> (u8, u8) {
-        (self.x, self.y)
-    }
-    /// Retrieve the navbar cursor's x position
-    pub fn get_x(&self) -> u8 {
-        self.x
-    }
-    /// Retrieve the navbar cursor's y position
-    pub fn get_y(&self) -> u8 {
-        self.y
-    }
-
-    /// Set the navbar cursor's x position.
-    pub fn set_x(&mut self, x: isize) {
-        self.x = self.clamp_x(x) as u8
-    }
-    /// Add one to the navbar cursor's x position.
-    pub fn add_x(&mut self) {
-        self.set_x(self.x as isize + 1)
-    }
-    /// Sub one to the navbar cursor's x position.
-    pub fn sub_x(&mut self) {
-        self.set_x(self.x as isize - 1)
-    }
-
-    /// Set the navbar cursor's y position.
-    pub fn set_y(&mut self, y: isize) {
-        self.y = self.clamp_y(y) as u8;
-    }
-    /// Add one to the navbar cursor's y position.
-    pub fn add_y(&mut self) {
-        self.set_y(self.y as isize + 1)
-    }
-    /// Sub one to the navbar cursor's y position.
-    pub fn sub_y(&mut self) {
-        self.set_y(self.y as isize - 1)
-    }
-}
-
-impl Position for NavCursor {
+impl Cursor for NavCursor {
     const MIN_X: isize = 0;
     const MAX_X: isize = 4;
     const MIN_Y: isize = 0;
     const MAX_Y: isize = 2;
+
+    fn new() -> NavCursor {
+        NavCursor { x: 0, y: 1 }
+    }
+
+    fn get_pos(&self) -> (u8, u8) {
+        (self.x, self.y)
+    }
+    fn get_x(&self) -> u8 {
+        self.x
+    }
+    fn get_y(&self) -> u8 {
+        self.y
+    }
+
+    fn set_x(&mut self, x: isize) {
+        self.x = self.clamp_x(x) as u8
+    }
+    fn add_x(&mut self) {
+        self.set_x(self.x as isize + 1)
+    }
+    fn sub_x(&mut self) {
+        self.set_x(self.x as isize - 1)
+    }
+
+    fn set_y(&mut self, y: isize) {
+        self.y = self.clamp_y(y) as u8;
+    }
+    fn add_y(&mut self) {
+        self.set_y(self.y as isize + 1)
+    }
+    fn sub_y(&mut self) {
+        self.set_y(self.y as isize - 1)
+    }
 }

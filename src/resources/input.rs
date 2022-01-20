@@ -41,17 +41,6 @@ impl InputType {
         ]
     }
 
-    /// Returns an Option where the value is the x and y to change by.
-    pub fn directional_change(&self) -> Option<(isize, isize)> {
-        match self {
-            InputType::Key(KeyCode::Up) => Some((0, 1)),
-            InputType::Key(KeyCode::Down) => Some((0, -1)),
-            InputType::Key(KeyCode::Left) => Some((-1, 0)),
-            InputType::Key(KeyCode::Right) => Some((1, 0)),
-            _ => None,
-        }
-    }
-
     /// Returns the 0-F keycodes.
     pub fn hex_keycodes() -> [InputType; 16] {
         [
@@ -76,6 +65,48 @@ impl InputType {
 
     pub fn input_to_num(&self) -> Option<usize> {
         InputType::hex_keycodes().iter().position(|x| x == self)
+    }
+}
+
+/// An enum of the 4 directional inputs.
+pub enum DirectionalInput {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+impl DirectionalInput {
+    /// Converts an InputType to a DirectionInput, returning None if `key`
+    /// is not a 4-directional input.
+    pub fn from_input_type(key: InputType) -> Option<DirectionalInput> {
+        Some(match key {
+            InputType::Key(KeyCode::Up) => DirectionalInput::Up,
+            InputType::Key(KeyCode::Down) => DirectionalInput::Down,
+            InputType::Key(KeyCode::Left) => DirectionalInput::Left,
+            InputType::Key(KeyCode::Right) => DirectionalInput::Right,
+            _ => return None,
+        })
+    }
+
+    /// Returns an Option where the value is the x and y to change by.
+    pub fn directional_change(&self) -> Option<(isize, isize)> {
+        match self {
+            DirectionalInput::Up => Some((0, 1)),
+            DirectionalInput::Down => Some((0, -1)),
+            DirectionalInput::Left => Some((-1, 0)),
+            DirectionalInput::Right => Some((1, 0)),
+        }
+    }
+
+    /// Moves the cursor according to self.
+    pub fn move_cursor(&self, cursor: &mut impl super::cursors::Cursor) {
+        match self {
+            DirectionalInput::Up => cursor.sub_y(),
+            DirectionalInput::Down => cursor.add_y(),
+            DirectionalInput::Left => cursor.sub_x(),
+            DirectionalInput::Right => cursor.add_x(),
+        }
     }
 }
 
@@ -236,6 +267,17 @@ impl InputRes {
         }
 
         false
+    }
+
+    /// Check if a directional input is pressed.
+    pub fn directional_input(&self) -> Option<DirectionalInput> {
+        for key in InputType::directional_keycodes() {
+            if self.dr_pressed(&key) && self.exclusively_pressed(&[key]) {
+                return DirectionalInput::from_input_type(key);
+            }
+        }
+
+        None
     }
 }
 

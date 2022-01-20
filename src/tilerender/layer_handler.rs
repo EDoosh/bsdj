@@ -140,16 +140,16 @@ impl LayerHandler {
     }
 
     /// Set the tiles at the given index.
-    pub fn set_tiles(
+    pub fn set_tiles<T: AsRef<str>>(
         &mut self,
         layer_id: &str,
         x: usize,
         y: usize,
-        tile_ids: &[&TileIdRef],
+        tile_ids: &[T],
         color_id: colors::Colors,
     ) -> Result<(), String> {
         for (idx, id) in tile_ids.iter().enumerate() {
-            self.set_tile(layer_id, x + idx, y, id, color_id)?
+            self.set_tile(layer_id, x + idx, y, id.as_ref(), color_id)?
         }
         Ok(())
     }

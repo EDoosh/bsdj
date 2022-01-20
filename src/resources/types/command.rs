@@ -1,5 +1,7 @@
 use std::fmt;
 
+pub const COMMAND_COUNT: u8 = 18;
+
 /// An enum of all valid Command, each also holding
 /// the value of the command.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -30,9 +32,9 @@ impl Command {
     pub fn from_num(num: u8) -> Result<Command, String> {
         match num {
             0x00 => Ok(Command::None),
-            0x01..=0x12 => Ok(Command::iter()[num as usize]),
+            0x01..=0x12 => Ok(Command::iter()[num as usize - 1]),
             _ => Err(format!(
-                "Command num invalid: Expected 0x00-0x12, got 0x{:02X}",
+                "Command num invalid: Expected 0x00-0x12, got {:#02x}",
                 num
             )),
         }
@@ -51,7 +53,7 @@ impl Command {
         if self == Command::None {
             0x00
         } else {
-            Command::iter().iter().position(|&cmd| cmd == self).unwrap() as u8
+            Command::iter().iter().position(|&cmd| cmd == self).unwrap() as u8 + 1
         }
     }
 
@@ -109,25 +111,29 @@ impl Command {
     /// If the command is Command::Pan, returns an LR string.
     /// If the command is Command::Wave, returns a string representation of the wave.
     /// In all other cases, returns a 2-digit hex string of the value of the command.
-    pub fn get_val_str(&self, val: u8) -> String {
+    pub fn get_val_str(&self, val: u8) -> Vec<String> {
         match self {
             Command::Pan => match val % 4 {
-                0 => "  ",
-                1 => "L ",
-                2 => " R",
-                3 => "LR",
+                0 => vec![
+                    "output_left_inactive".to_string(),
+                    "output_right_inactive".to_string(),
+                ],
+                1 => vec!["l".to_string(), "output_right_inactive".to_string()],
+                2 => vec!["output_left_inactive".to_string(), "r".to_string()],
+                3 => vec!["l".to_string(), "r".to_string()],
                 _ => panic!("val % 4 not in range 0-3????"),
-            }
-            .to_string(),
+            },
             Command::Wave => match val % 4 {
-                0 => "L_",
-                1 => "𝕃_",
-                2 => "П_",
-                3 => "Гl",
+                0 => vec!["pu12".to_string(), "puend".to_string()],
+                1 => vec!["pu25".to_string(), "puend".to_string()],
+                2 => vec!["pu50".to_string(), "puend".to_string()],
+                3 => vec!["pu75".to_string(), "pu75end".to_string()],
                 _ => panic!("val % 4 not in range 0-3????"),
+            },
+            _ => {
+                // Create a vec of the first and second hex character.
+                vec![format!("{:01x}", val / 16), format!("{:01x}", val % 16)]
             }
-            .to_string(),
-            _ => format!("{:02X}", val),
         }
     }
 }
