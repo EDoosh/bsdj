@@ -2,3 +2,6 @@
 /roms
 workspace.code-workspace
 /notes
+/crates
+/.vscode
+Cargo.lock
